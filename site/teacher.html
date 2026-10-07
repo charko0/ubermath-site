@@ -444,6 +444,35 @@ canvas.stage:active { cursor: grabbing; }
 .exbox > div { display: grid; gap: 4px; margin-top: 10px; }
 .exbox ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; line-height: 1.75; }
 .exbox .src { display: block; font-size: .8rem; color: var(--muted); }
+.exeg { margin: 6px 0 4px; border: 1px solid var(--line); background: var(--paper); }
+.exeg summary { cursor: pointer; font-weight: 600; font-size: .95rem; color: var(--gold); padding: 6px 12px; min-height: 36px; display: flex; align-items: center; letter-spacing: 0; }
+.exeg[open] summary { border-bottom: 1px solid var(--line); }
+.exeg .ex-q { padding: 10px 12px 4px; font-weight: 600; }
+.exeg .ex-fig { padding: 4px 12px; }
+.exeg .ex-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 12px 12px; }
+.exeg .ex-wrong, .exeg .ex-right { padding: 10px 12px; display: grid; gap: 4px; align-content: start; }
+.exeg .ex-wrong { border: 1.5px solid var(--red); background: var(--red-soft); }
+.exeg .ex-right { border: 1.5px solid var(--green); background: var(--green-soft); }
+.exeg .ex-h { font-size: .9rem; letter-spacing: .08em; }
+.exeg .ex-wrong .ex-h { color: var(--red); }
+.exeg .ex-right .ex-h { color: var(--green); }
+.exeg .ex-l { line-height: 1.8; }
+.exeg .ex-why { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--red); font-size: .95rem; }
+.qfig .gr { stroke: var(--line); stroke-width: .6; }
+.qfig .ax { stroke: var(--muted); stroke-width: 1.2; }
+.exeg .ex-leg { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; font-size: .9rem; }
+.exeg .ex-leg li { display: flex; align-items: center; gap: 8px; }
+.exeg .ex-leg svg { flex: 0 0 auto; }
+.exeg .ex-leg .s { stroke: var(--ink); stroke-width: 1.6; }
+.exeg .ex-leg .d { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.exeg .ex-leg .gd { stroke: var(--gold); stroke-width: 2.4; }
+.exeg .ex-leg .wr { stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 4; }
+.qfig .wpt { fill: var(--red); }
+.qfig .wr { fill: none; stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 4; }
+.qfig text.wr, .qfig text.gd, .qfig text.gold { stroke: none; font-weight: 600; }
+.qfig text.wr { fill: var(--red); }
+.qfig text.gd, .qfig text.gold { fill: var(--gold); }
+@media (max-width: 640px) { .exeg .ex-cols { grid-template-columns: 1fr; } }
 .scheme { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 3px; font-size: .92rem; color: var(--ink-2); }
 .scheme .sl { font-size: .78rem; letter-spacing: .16em; color: var(--gold); font-weight: 700; }
 .kinds { flex: 1 1 100%; display: grid; gap: 12px; border: 2px solid var(--red); background: var(--red-soft); padding: 14px 16px; margin-bottom: 4px; }
@@ -8709,6 +8738,117 @@ examQ('u18', 'misuse', { type: 'mc', paper: '卷二甲部', ref: '題型參考�
   for (const [uid, extra] of Object.entries(N)) {
     const u = UNITS.find(x => x.id === uid); if (!u) continue;
     const s = u.stations.find(x => x.kind === 'dse'); if (s) Object.assign(s, extra);
+  }
+})();
+
+/* 考評局提醒的「看例子」：每條提醒配一個小例題、圖、常見錯法和正確做法。
+   資料：在 xn.js 已載入的 notes / tips 上加 ex 欄位（按次序對應）。 */
+
+/* coordinate figure: x, y ranges in units; lines through two points are clipped to the box.
+   lines: [{a, b, cls, t: label, at: [x, y]}]; circles: [{c, r, cls}]; pts: {A: [x, y]}; lab: {A: [dx, dy] px}; segs: [[P, Q, cls]] */
+function coordFig(o) {
+  const [x0, x1] = o.x, [y0, y1] = o.y, k = o.k || 24, pad = 18;
+  const X = x => ((x - x0) * k + pad).toFixed(1), Y = y => ((y1 - y) * k + pad).toFixed(1);
+  const W = (x1 - x0) * k + 2 * pad, H = (y1 - y0) * k + 2 * pad;
+  let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" width="${Math.min(420, W).toFixed(0)}" role="img" aria-label="${esc(o.alt || '坐標圖')}">`;
+  // light grid + axes
+  for (let x = Math.ceil(x0); x <= x1; x++) s += `<line class="gr" x1="${X(x)}" y1="${Y(y0)}" x2="${X(x)}" y2="${Y(y1)}"/>`;
+  for (let y = Math.ceil(y0); y <= y1; y++) s += `<line class="gr" x1="${X(x0)}" y1="${Y(y)}" x2="${X(x1)}" y2="${Y(y)}"/>`;
+  if (y0 <= 0 && y1 >= 0) s += `<line class="ax" x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}"/><text x="${(+X(x1) + 2).toFixed(1)}" y="${(+Y(0) - 6).toFixed(1)}" text-anchor="end">x</text>`;
+  if (x0 <= 0 && x1 >= 0) s += `<line class="ax" x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}"/><text x="${(+X(0) + 8).toFixed(1)}" y="${(+Y(y1) + 4).toFixed(1)}">y</text>`;
+  (o.circles || []).forEach(c => s += `<circle class="${c.cls || 's'}" cx="${X(c.c[0])}" cy="${Y(c.c[1])}" r="${(c.r * k).toFixed(1)}"/>`);
+  (o.lines || []).forEach(l => {
+    const [ax, ay] = l.a, [bx, by] = l.b, dx = bx - ax, dy = by - ay, ts = [];
+    if (Math.abs(dx) > 1e-9) [x0, x1].forEach(xb => { const t = (xb - ax) / dx, y = ay + t * dy; if (y >= y0 - 1e-9 && y <= y1 + 1e-9) ts.push(t); });
+    if (Math.abs(dy) > 1e-9) [y0, y1].forEach(yb => { const t = (yb - ay) / dy, x = ax + t * dx; if (x >= x0 - 1e-9 && x <= x1 + 1e-9) ts.push(t); });
+    if (ts.length < 2) return;
+    const t1 = Math.min(...ts), t2 = Math.max(...ts);
+    s += `<line class="${l.cls || 's'}" x1="${X(ax + t1 * dx)}" y1="${Y(ay + t1 * dy)}" x2="${X(ax + t2 * dx)}" y2="${Y(ay + t2 * dy)}"/>`;
+    if (l.t) s += `<text class="n ${l.cls === 's' ? '' : (l.cls || '')}" x="${X(l.at[0])}" y="${Y(l.at[1])}" text-anchor="middle">${l.t}</text>`;
+  });
+  (o.segs || []).forEach(([p, q, cls]) => { const a = o.pts[p], b = o.pts[q]; s += `<line class="${cls || 's'}" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`; });
+  (o.right || []).forEach(([p, v, q]) => {
+    const V = o.pts[v], u = A => { const dx = (A[0] - V[0]), dy = (A[1] - V[1]), l = Math.hypot(dx, dy); return [dx / l * 9, -dy / l * 9]; };
+    const a = u(o.pts[p]), b = u(o.pts[q]), vx = +X(V[0]), vy = +Y(V[1]);
+    s += `<path class="s" style="stroke-width:1.1" d="M${vx + a[0]} ${vy + a[1]} L${vx + a[0] + b[0]} ${vy + a[1] + b[1]} L${vx + b[0]} ${vy + b[1]}"/>`;
+  });
+  Object.entries(o.pts || {}).forEach(([n, p]) => {
+    const off = (o.lab || {})[n] || [10, -10];
+    s += `<circle class="pt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3"/><text x="${(+X(p[0]) + off[0]).toFixed(1)}" y="${(+Y(p[1]) + off[1]).toFixed(1)}" text-anchor="middle">${n}</text>`;
+  });
+  Object.entries(o.bad || {}).forEach(([n, p]) => {
+    const off = (o.lab || {})[n] || [10, -10];
+    s += `<circle class="wpt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.4"/><text class="wr" x="${(+X(p[0]) + off[0]).toFixed(1)}" y="${(+Y(p[1]) + off[1]).toFixed(1)}" text-anchor="middle">${n}</text>`;
+  });
+  (o.text || []).forEach(([x, y, t, cls]) => s += `<text class="n ${cls || ''}" x="${X(x)}" y="${Y(y)}" text-anchor="middle">${t}</text>`);
+  return s + '</svg>';
+}
+
+(() => {
+  const EX = {
+    /* 第 13 單元 圓的方程 */
+    u13: {
+      notes: [
+        { // 圓心錯放 / 用錯垂直平分線
+          q: '例：圓經過 $A(0, 4)$ 和 $B(4, 0)$，圓心在直線 $y = 2x - 3$ 上。求圓心。',
+          fig: coordFig({ x: [-1, 7], y: [-1, 7], k: 36, alt: '弦 AB、正確的垂直平分線 y = x、錯誤的直線，以及圓心 C(3, 3)',
+            pts: { A: [0, 4], B: [4, 0], M: [2, 2], C: [3, 3] }, lab: { A: [-12, -4], B: [6, 16], M: [12, 14], C: [12, -8] },
+            segs: [['A', 'B', 's']], right: [['B', 'M', 'C']],
+            circles: [{ c: [3, 3], r: Math.sqrt(10), cls: 'd' }],
+            lines: [
+              { a: [0, 0], b: [1, 1], cls: 'gd' },
+              { a: [0, -3], b: [3, 3], cls: 's' },
+              { a: [0, 4], b: [4, 0], cls: 'wr' }
+            ] }),
+          leg: [['gd', '垂直平分線 $y = x$（正確）'], ['s', '已知直線 $y = 2x - 3$'], ['wr', '錯把 $AB$ 延長當作垂直平分線：$y = -x + 4$'], ['d', '所求的圓']],
+          wrong: ['$AB$ 中點 $M(2, 2)$，$AB$ 的斜率 $= -1$', '「垂直平分線」：$y - 2 = -1(x - 2)$，即 $y = -x + 4$', '與 $y = 2x - 3$ 聯立：圓心 $(#frac{7}{3}, #frac{5}{3})$'],
+          why: '錯在直接用了 $AB$ 的斜率。垂直平分線要和 $AB$ 垂直，斜率應該是 $-1$ 的負倒數，即 $1$。代回檢查：這個「圓心」到 $A$、$B$ 的距離不相等，一驗就知錯。',
+          right: ['$AB$ 中點 $M(2, 2)$，$AB$ 的斜率 $= -1$', '垂直平分線斜率 $= 1$：$y - 2 = x - 2$，即 $y = x$', '與 $y = 2x - 3$ 聯立：$x = 2x - 3$，$x = 3$', '圓心 $C(3, 3)$', '驗算：$CA = #sqrt{9 + 1} = #sqrt{10}$，$CB = #sqrt{1 + 9} = #sqrt{10}$ ✓']
+        },
+        { // 弦當半徑
+          q: '例：圓的圓心是 $G(2, 3)$，半徑是 $5$。直線 $x = 5$ 交圓於 $M$、$N$。求 $MN$ 的長度。',
+          fig: coordFig({ x: [-4, 8], y: [-3, 9], k: 28, alt: '圓心 G(2, 3)，直線 x = 5 交圓於 M(5, 7)、N(5, −1)；GM、GN 是半徑，MN 是弦',
+            pts: { G: [2, 3], M: [5, 7], N: [5, -1], H: [5, 3] }, lab: { G: [-12, -6], M: [12, -6], N: [12, 14], H: [12, -6] },
+            circles: [{ c: [2, 3], r: 5, cls: 's' }],
+            segs: [['G', 'M', 'd'], ['G', 'N', 'd'], ['G', 'H', 'd'], ['M', 'N', 'gd']], right: [['G', 'H', 'M']],
+            lines: [{ a: [5, 0], b: [5, 1], cls: 's', t: 'x = 5', at: [6.3, 8.2] }],
+            text: [[3.3, 5.6, '5'], [3.5, 3.4, '3'], [5.6, 5, '4', 'gold']] }),
+          leg: [['d', '$GM$、$GN$：半徑 $= 5$'], ['gd', '$MN$：弦（不經過圓心）']],
+          wrong: ['$M$、$N$ 都在圓上，所以 $MN = $ 半徑 $= 5$'],
+          why: '$GM$ 和 $GN$ 才是半徑（由圓心到圓上一點）。$MN$ 兩端都在圓上，但沒有經過圓心，是一條弦，長度要另外計算。',
+          right: ['$G$ 到直線 $x = 5$ 的距離 $GH = 5 - 2 = 3$', '圓心到弦的垂線平分弦：$MH = #sqrt{5^2 - 3^2} = 4$', '$MN = 2 #times 4 = 8$', '（亦可代入 $x = 5$：$(y - 3)^2 = 16$，$y = 7$ 或 $-1$，同樣得 $MN = 8$）']
+        },
+        { // 用圓的性質：圓心與弦中點的連線垂直於弦
+          q: '例：圓的圓心是 $G(2, 3)$。弦 $PQ$ 的中點是 $A(4, 4)$。求直線 $PQ$ 的方程。',
+          fig: coordFig({ x: [-4, 8], y: [-3, 9], k: 28, alt: '圓心 G(2, 3)，弦 PQ 的中點 A(4, 4)，GA 垂直於 PQ',
+            pts: { G: [2, 3], A: [4, 4], P: [2, 8], Q: [6, 0] }, lab: { G: [-12, 4], A: [14, -4], P: [-10, -6], Q: [12, 12] },
+            circles: [{ c: [2, 3], r: 5, cls: 's' }],
+            segs: [['P', 'Q', 'gd'], ['G', 'A', 'd']], right: [['G', 'A', 'Q']] }),
+          leg: [['d', '$GA$：圓心到弦中點'], ['gd', '弦 $PQ$，與 $GA$ 垂直']],
+          wrong: ['設 $P(x_1, y_1)$、$Q(x_2, y_2)$，再用中點公式和圓方程列出四條方程……', '（方程太多，做不下去；或者誤用 $GA$ 的斜率 $#frac{1}{2}$ 作為 $PQ$ 的斜率）'],
+          why: '沒有用上圓的性質：圓心和弦中點的連線垂直於弦，即 $GA #perp PQ$。用了這一步，一行就求到斜率。',
+          right: ['$GA$ 的斜率 $= #frac{4 - 3}{4 - 2} = #frac{1}{2}$', '因為 $GA #perp PQ$，$PQ$ 的斜率 $= -2$', '$PQ$：$y - 4 = -2(x - 4)$，即 $y = -2x + 12$', '（若半徑是 $5$，可求得 $P(2, 8)$、$Q(6, 0)$，中點正是 $(4, 4)$ ✓）']
+        }
+      ],
+      tips: [
+        { // 2x² + 2y² 先除以 2
+          q: '例：求圓 $2x^2 + 2y^2 - 8x + 12y - 6 = 0$ 的圓心和半徑。',
+          fig: coordFig({ x: [-3, 7], y: [-8, 2], k: 28, alt: '正確的圓：圓心 (2, −3)，半徑 4；錯誤讀出的圓心 (4, −6) 在圓外',
+            pts: { '(2, −3)': [2, -3] }, bad: { '✗ (4, −6)': [4, -6] }, lab: { '(2, −3)': [0, 18], '✗ (4, −6)': [30, 18] },
+            circles: [{ c: [2, -3], r: 4, cls: 'gd' }],
+            text: [[4.2, -0.6, 'r = 4', 'gold']] }),
+          leg: [['gd', '正確：圓心 $(2, -3)$，半徑 $4$'], ['wr', '錯誤讀出的圓心 $(4, -6)$，根本不是這個圓的圓心']],
+          wrong: ['直接讀係數：圓心 $= (-#frac{-8}{2}, -#frac{12}{2}) = (4, -6)$', '半徑 $= #sqrt{4^2 + 6^2 + 6} = #sqrt{58}$'],
+          why: '讀圓心和半徑的公式只適用於 $x^2$、$y^2$ 的係數都是 $1$ 的方程。這裏係數是 $2$，要先整條除以 $2$。',
+          right: ['先除以 $2$：$x^2 + y^2 - 4x + 6y - 3 = 0$', '圓心 $= (-#frac{-4}{2}, -#frac{6}{2}) = (2, -3)$', '半徑 $= #sqrt{2^2 + 3^2 + 3} = #sqrt{16} = 4$']
+        }
+      ]
+    }
+  };
+  for (const [uid, add] of Object.entries(EX)) {
+    const u = UNITS.find(x => x.id === uid); if (!u) continue;
+    const s = u.stations.find(x => x.kind === 'dse'); if (!s) continue;
+    ['notes', 'tips'].forEach(key => (add[key] || []).forEach((ex, i) => { if (ex && s[key] && s[key][i]) s[key][i].ex = ex; }));
   }
 })();
 
