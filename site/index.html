@@ -467,6 +467,13 @@ canvas.stage:active { cursor: grabbing; }
 .exeg .ex-leg .gd { stroke: var(--gold); stroke-width: 2.4; }
 .exeg .ex-leg .wr { stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 4; }
 .qfig .wpt { fill: var(--red); }
+.qfig .fill { fill: var(--gold); fill-opacity: .16; stroke: none; }
+.qfig .opt { fill: var(--halo); stroke: var(--ink); stroke-width: 1.6; }
+.qfig .ray { fill: none; stroke: var(--gold); stroke-width: 4; stroke-linecap: round; }
+.qfig .wray { fill: none; stroke: var(--red); stroke-width: 4; stroke-linecap: round; opacity: .75; }
+.exeg .ex-leg .fill { stroke: var(--gold); stroke-width: 9; stroke-opacity: .25; }
+.exeg .ex-leg .ray { stroke: var(--gold); stroke-width: 4; }
+.exeg .ex-leg .wray { stroke: var(--red); stroke-width: 4; opacity: .75; }
 .qfig .wr { fill: none; stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 4; }
 .qfig text.wr, .qfig text.gd, .qfig text.gold { font-weight: 600; }
 .qfig text.wr, .qfig text.gd, .qfig text.gold, .qfig text.s, .qfig text.d { stroke: var(--halo); stroke-width: 4px; stroke-dasharray: none; }
@@ -8736,15 +8743,32 @@ function coordFig(o) {
   const X = x => ((x - x0) * k + pad).toFixed(1), Y = y => ((y1 - y) * k + pad).toFixed(1);
   const W = (x1 - x0) * k + 2 * pad, H = (y1 - y0) * k + 2 * pad;
   const drawn = [];
-  let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" width="${Math.min(420, W).toFixed(0)}" role="img" aria-label="${esc(o.alt || '坐標圖')}">`;
-  // light grid + axes
-  for (let x = Math.ceil(x0); x <= x1; x++) s += `<line class="gr" x1="${X(x)}" y1="${Y(y0)}" x2="${X(x)}" y2="${Y(y1)}"/>`;
-  for (let y = Math.ceil(y0); y <= y1; y++) s += `<line class="gr" x1="${X(x0)}" y1="${Y(y)}" x2="${X(x1)}" y2="${Y(y)}"/>`;
-  if (y0 <= 0 && y1 >= 0) drawn.push([[+X(x0), +Y(0)], [+X(x1), +Y(0)]]);
-  if (x0 <= 0 && x1 >= 0) drawn.push([[+X(0), +Y(y0)], [+X(0), +Y(y1)]]);
-  if (y0 <= 0 && y1 >= 0) s += `<line class="ax" x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}"/><text x="${(+X(x1) + 2).toFixed(1)}" y="${(+Y(0) - 6).toFixed(1)}" text-anchor="end">x</text>`;
-  if (x0 <= 0 && x1 >= 0) s += `<line class="ax" x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}"/><text x="${(+X(0) + 8).toFixed(1)}" y="${(+Y(y1) + 4).toFixed(1)}">y</text>`;
+  let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" width="${Math.min(440, Math.max(o.minW || 330, W * 1.15)).toFixed(0)}" role="img" aria-label="${esc(o.alt || '坐標圖')}">`;
+  // light grid + axes (o.grid === false / o.axes === false to hide)
+  const gs = o.gstep || 1;
+  if (o.grid !== false) {
+    for (let x = Math.ceil(x0 / gs) * gs; x <= x1 + 1e-9; x += gs) s += `<line class="gr" x1="${X(x)}" y1="${Y(y0)}" x2="${X(x)}" y2="${Y(y1)}"/>`;
+    for (let y = Math.ceil(y0 / gs) * gs; y <= y1 + 1e-9; y += gs) s += `<line class="gr" x1="${X(x0)}" y1="${Y(y)}" x2="${X(x1)}" y2="${Y(y)}"/>`;
+  }
+  // shaded regions (not obstacles: letters may sit on a light fill)
+  (o.polys || []).forEach(pg => s += `<polygon class="${pg.cls || 'fill'}" points="${pg.pts.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')}"/>`);
+  const axes = o.axes !== false;
+  if (axes && y0 <= 0 && y1 >= 0) drawn.push([[+X(x0), +Y(0)], [+X(x1), +Y(0)]]);
+  if (axes && x0 <= 0 && x1 >= 0) drawn.push([[+X(0), +Y(y0)], [+X(0), +Y(y1)]]);
+  if (axes && y0 <= 0 && y1 >= 0) s += `<line class="ax" x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}"/><text x="${(+X(x1) + 2).toFixed(1)}" y="${(+Y(0) - 6).toFixed(1)}" text-anchor="end">x</text>`;
+  if (axes && x0 <= 0 && x1 >= 0) s += `<line class="ax" x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}"/><text x="${(+X(0) + 8).toFixed(1)}" y="${(+Y(y1) + 4).toFixed(1)}">y</text>`;
   (o.circles || []).forEach(c => s += `<circle class="${c.cls || 's'}" cx="${X(c.c[0])}" cy="${Y(c.c[1])}" r="${(c.r * k).toFixed(1)}"/>`);
+  // curves y = f(x): sampled, broken where they leave the box
+  (o.curves || []).forEach(c => {
+    const a = c.from != null ? c.from : x0, b = c.to != null ? c.to : x1, n = c.n || 160, runs = [];
+    let run = [];
+    for (let i = 0; i <= n; i++) {
+      const x = a + (b - a) * i / n, y = c.f(x);
+      if (isFinite(y) && y >= y0 - 0.02 && y <= y1 + 0.02) run.push([+X(x), +Y(y)]); else { if (run.length > 1) runs.push(run); run = []; }
+    }
+    if (run.length > 1) runs.push(run);
+    runs.forEach(r => { for (let i = 1; i < r.length; i++) drawn.push([r[i - 1], r[i]]); s += `<polyline class="${c.cls || 's'}" points="${r.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`; });
+  });
   (o.lines || []).forEach(l => {
     const [ax, ay] = l.a, [bx, by] = l.b, dx = bx - ax, dy = by - ay, ts = [];
     if (Math.abs(dx) > 1e-9) [x0, x1].forEach(xb => { const t = (xb - ax) / dx, y = ay + t * dy; if (y >= y0 - 1e-9 && y <= y1 + 1e-9) ts.push(t); });
@@ -8762,25 +8786,35 @@ function coordFig(o) {
     const a = u(o.pts[p]), b = u(o.pts[q]), vx = +X(V[0]), vy = +Y(V[1]);
     s += `<path class="s" style="stroke-width:1.1" d="M${vx + a[0]} ${vy + a[1]} L${vx + a[0] + b[0]} ${vy + a[1] + b[1]} L${vx + b[0]} ${vy + b[1]}"/>`;
   });
+  // angle marks: [P, V, Q] (+ optional label, auto-placed along the bisector)
+  const arcLabs = [];
+  (o.arcs || []).forEach(([p, v, q, lab, cls]) => {
+    const V = o.pts[v], ang = A => Math.atan2(-(A[1] - V[1]), A[0] - V[0]);
+    let a1 = ang(o.pts[p]), a2 = ang(o.pts[q]), d = a2 - a1;
+    while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    const r = 15, vx = +X(V[0]), vy = +Y(V[1]), e = a1 + d;
+    s += `<path class="${cls || 's'}" style="stroke-width:1.1" d="M${(vx + r * Math.cos(a1)).toFixed(1)} ${(vy + r * Math.sin(a1)).toFixed(1)} A${r} ${r} 0 0 ${d > 0 ? 1 : 0} ${(vx + r * Math.cos(e)).toFixed(1)} ${(vy + r * Math.sin(e)).toFixed(1)}"/>`;
+    if (lab) { const c = []; for (const r of [28, 36, 44, 54, 64, 76]) for (const t of [0.5, 0.38, 0.62, 0.26, 0.74]) { const m = a1 + d * t; c.push([Math.cos(m) * r, Math.sin(m) * r]); } arcLabs.push([lab, V, c, cls]); }
+  });
   // ---- label placement: every letter avoids lines, circles, points and other letters ----
   const obs = [], boxes = [], P2 = p => [+X(p[0]), +Y(p[1])];
   const addSeg = (a, b) => { const n = Math.max(2, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3)); for (let i = 0; i <= n; i++) obs.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); };
   drawn.forEach(([a, b]) => addSeg(a, b));
   (o.circles || []).forEach(c => { const [cx, cy] = P2(c.c), r = c.r * k, n = Math.ceil(2 * Math.PI * r / 3); for (let i = 0; i < n; i++) obs.push([cx + r * Math.cos(2 * Math.PI * i / n), cy + r * Math.sin(2 * Math.PI * i / n)]); });
-  const allPts = Object.assign({}, o.pts || {}, o.bad || {});
+  const allPts = Object.assign({}, o.pts || {}, o.bad || {}, o.opens || {});
   Object.values(allPts).forEach(p => { const [x, y] = P2(p); for (let a = 0; a < 8; a++) obs.push([x + 4 * Math.cos(a * Math.PI / 4), y + 4 * Math.sin(a * Math.PI / 4)]); obs.push([x, y]); });
   const textW = t => [...String(t)].reduce((w, ch) => w + (/[　-鿿＀-￯]/.test(ch) ? 14 : /[A-Za-z]/.test(ch) ? 9.5 : 7.5), 0);
-  const place = (n, p, hint) => {
-    const [x, y] = P2(p), w = textW(n) + 4, h = 17, cands = [];
+  const place = (n, p, hint, only) => {
+    const [x, y] = P2(p), w = textW(n) + 4, h = 17, cands = only ? only.slice() : [];
     if (hint) cands.push(hint);
-    for (const r of [15, 20, 26]) for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; cands.push([r * Math.cos(t) * (1 + w / 40), r * Math.sin(t)]); }
+    if (!only) for (const r of [15, 20, 26, 34, 44]) for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; cands.push([r * Math.cos(t) * (1 + w / 40), r * Math.sin(t)]); }
     let best = null, bestScore = Infinity;
     cands.forEach(([dx, dy], i) => {
       const cx = x + dx, cy = y + dy, L = cx - w / 2, R = cx + w / 2, T = cy - h / 2, B = cy + h / 2;
       let sc = 0;
       obs.forEach(([ox, oy]) => { if (ox > L - 2 && ox < R + 2 && oy > T - 2 && oy < B + 2) sc += 10; });
-      boxes.forEach(b => { if (L < b[2] + 3 && R > b[0] - 3 && T < b[3] + 3 && B > b[1] - 3) sc += 60; });
-      if (L < 0 || R > W || T < 0 || B > H) sc += 40;
+      boxes.forEach(b => { if (L < b[2] + 3 && R > b[0] - 3 && T < b[3] + 3 && B > b[1] - 3) sc += 1000; });
+      if (L < 0 || R > W || T < 0 || B > H) sc += 1000;
       sc += Math.hypot(dx, dy) / 8 + (hint && i === 0 ? -1 : 0);
       if (sc < bestScore) { bestScore = sc; best = [cx, cy, L, T, R, B]; }
     });
@@ -8788,6 +8822,8 @@ function coordFig(o) {
     return best;
   };
   Object.values(allPts).forEach(p => { const [x, y] = P2(p); boxes.push([x - 3, y - 3, x + 3, y + 3]); });
+  (o.text || []).forEach(([x, y, t]) => { const w = textW(t) * 0.85 + 4, cx = +X(x), cy = +Y(y) - 4; boxes.push([cx - w / 2, cy - 8, cx + w / 2, cy + 8]); });
+  arcLabs.forEach(([t, V, cands, cls]) => { const [lx, ly] = place(t, V, null, cands); s += `<text class="n ${cls === 'gd' ? 'gold' : cls === 'wr' ? 'wr' : ''}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${t}</text>`; });
   Object.entries(o.pts || {}).forEach(([n, p]) => {
     const [lx, ly] = place(n, p, (o.lab || {})[n]);
     s += `<circle class="pt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3"/><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${n}</text>`;
@@ -8796,6 +8832,12 @@ function coordFig(o) {
     const [lx, ly] = place(n, p, (o.lab || {})[n]);
     s += `<circle class="wpt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.4"/><text class="wr" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${n}</text>`;
   });
+  Object.entries(o.opens || {}).forEach(([n, p]) => {
+    const [lx, ly] = place(n, p, (o.lab || {})[n]);
+    s += `<circle class="opt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.6"/><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${n}</text>`;
+  });
+  // free labels: [text, [x, y] anchor, cls, hint px] — auto-placed near the anchor, away from every line
+  (o.labels || []).forEach(([t, p, cls, hint]) => { const [lx, ly] = place(t, p, hint); s += `<text class="n ${cls || ''}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${t}</text>`; });
   (o.text || []).forEach(([x, y, t, cls]) => s += `<text class="n ${cls || ''}" x="${X(x)}" y="${Y(y)}" text-anchor="middle">${t}</text>`);
   return s + '</svg>';
 }
@@ -8857,6 +8899,975 @@ function coordFig(o) {
           wrong: ['直接讀係數：圓心 $= (-#frac{-8}{2}, -#frac{12}{2}) = (4, -6)$', '半徑 $= #sqrt{4^2 + 6^2 + 6} = #sqrt{58}$'],
           why: '讀圓心和半徑的公式只適用於 $x^2$、$y^2$ 的係數都是 $1$ 的方程。這裏係數是 $2$，要先整條除以 $2$。',
           right: ['先除以 $2$：$x^2 + y^2 - 4x + 6y - 3 = 0$', '圓心 $= (-#frac{-4}{2}, -#frac{6}{2}) = (2, -3)$', '半徑 $= #sqrt{2^2 + 3^2 + 3} = #sqrt{16} = 4$']
+        }
+      ]
+    }
+  };
+  for (const [uid, add] of Object.entries(EX)) {
+    const u = UNITS.find(x => x.id === uid); if (!u) continue;
+    const s = u.stations.find(x => x.kind === 'dse'); if (!s) continue;
+    ['notes', 'tips'].forEach(key => (add[key] || []).forEach((ex, i) => { if (ex && s[key] && s[key][i]) s[key][i].ex = ex; }));
+  }
+})();
+
+/* 考評局提醒的「看例子」（第 1–10 單元）。格式同 xn_ex.js；null 表示該條提醒不需要例子。 */
+(() => {
+  const EX = {
+    /* 第 1 單元 二次方程 */
+    u01: {
+      notes: [
+        { // α² + β²
+          q: '例：$#alpha$、$#beta$ 是方程 $x^2 - 5x + 3 = 0$ 的根。求 $#alpha^2 + #beta^2$。',
+          wrong: ['$#alpha + #beta = 5$', '$#alpha^2 + #beta^2 = (#alpha + #beta)^2 = 5^2 = 25$'],
+          why: '$(#alpha + #beta)^2 = #alpha^2 + 2#alpha#beta + #beta^2$，展開後多了一項 $2#alpha#beta$，所以 $#alpha^2 + #beta^2$ 不等於 $(#alpha + #beta)^2$，要把 $2#alpha#beta$ 減走。',
+          right: ['$#alpha + #beta = 5$，$#alpha#beta = 3$', '$#alpha^2 + #beta^2 = (#alpha + #beta)^2 - 2#alpha#beta$', '$= 5^2 - 2(3) = 19$']
+        },
+        { // 判別式不等號
+          q: '例：方程 $x^2 - 6x + k = 0$ 有實根。求 $k$ 的取值範圍。',
+          fig: coordFig({ x: [-0.5, 6.5], y: [-5, 7], k: 26, alt: 'y = x² − 6x + k 在 k = 5、9、12 時的圖像：k = 9 時剛好碰到 x 軸',
+            curves: [
+              { f: x => x * x - 6 * x + 5, cls: 's' },
+              { f: x => x * x - 6 * x + 9, cls: 'gd' },
+              { f: x => x * x - 6 * x + 12, cls: 'd' }
+            ],
+            pts: { '(3, 0)': [3, 0] } }),
+          leg: [['s', '$k = 5$：兩個不相等的實根'], ['gd', '$k = 9$：兩個相等的實根（仍然是實根）'], ['d', '$k = 12$：沒有實根']],
+          wrong: ['有實根，所以 $#Delta > 0$', '$36 - 4k > 0$', '$k < 9$'],
+          why: '「有實根」包括兩個相等的實根，即 $#Delta = 0$ 的情況。看圖：$k = 9$ 時曲線剛好碰到 $x$ 軸，也是有實根。$#Delta > 0$ 只適用於「兩個不相等的實根」。',
+          right: ['有實根，所以 $#Delta #ge 0$', '$(-6)^2 - 4(1)(k) #ge 0$', '$36 - 4k #ge 0$', '$k #le 9$']
+        },
+        { // 計算機小數 ≠ 無理數
+          q: '例：方程 $9x^2 - 3x - 2 = 0$ 的根是有理數還是無理數？',
+          wrong: ['計算機顯示 $x = 0.6666…$ 或 $x = -0.3333…$', '小數無限不終止，所以是無理數'],
+          why: '$0.6666…$ 是循環小數，等於 $#frac{2}{3}$，是有理數。只看計算機的小數不能判斷；要看判別式是不是完全平方數，或寫出準確值。',
+          right: ['$#Delta = (-3)^2 - 4(9)(-2) = 81 = 9^2$，是完全平方數', '$x = #frac{3 #pm 9}{18}$', '$x = #frac{2}{3}$ 或 $x = -#frac{1}{3}$，兩根都是有理數']
+        }
+      ],
+      tips: [
+        { // 先化 x² 係數為 1
+          q: '例：$#alpha$、$#beta$ 是 $2x^2 - 6x + 1 = 0$ 的根。求 $#frac{1}{#alpha} + #frac{1}{#beta}$。',
+          wrong: ['用二次公式：$x = #frac{6 #pm #sqrt{28}}{4} = #frac{3 #pm #sqrt{7}}{2}$', '再計算 $#frac{2}{3 + #sqrt{7}} + #frac{2}{3 - #sqrt{7}}$……（根式很繁，容易算錯）', '或者忘記除以 2，寫成 $#alpha + #beta = 6$、$#alpha#beta = 1$，得出 $6$ 以外的答案'],
+          why: '題目只要兩根的組合，不必逐個求根。但用兩根之和與積之前，要先把 $x^2$ 的係數化成 $1$。',
+          right: ['除以 $2$：$x^2 - 3x + #frac{1}{2} = 0$', '$#alpha + #beta = 3$，$#alpha#beta = #frac{1}{2}$', '$#frac{1}{#alpha} + #frac{1}{#beta} = #frac{#alpha + #beta}{#alpha#beta} = #frac{3}{#frac{1}{2}} = 6$']
+        }
+      ]
+    },
+    /* 第 2 單元 二次函數 */
+    u02: {
+      notes: [
+        { // 以參數表示頂點
+          q: '例：求 $y = x^2 - 2kx + k^2 + 3k$ 的頂點坐標（以 $k$ 表示）。',
+          fig: coordFig({ x: [-4, 4], y: [-1, 9], k: 28, alt: 'k = 1 時，y = (x − 1)² + 3，頂點 (1, 3)；錯誤答案 (−1, 3) 不是頂點',
+            curves: [{ f: x => (x - 1) * (x - 1) + 3, cls: 'gd' }],
+            pts: { '(1, 3)': [1, 3] }, bad: { '✗ (−1, 3)': [-1, 3] } }),
+          leg: [['gd', '代 $k = 1$ 檢查：$y = (x - 1)^2 + 3$，頂點是 $(1, 3)$']],
+          wrong: ['$y = (x - k)^2 + 3k$', '頂點 $= (-k, 3k)$'],
+          why: '$(x - k)^2$ 在 $x = k$ 時等於 $0$，所以頂點的 $x$ 坐標是 $k$，不是 $-k$。不肯定時，代一個數（例如 $k = 1$）檢查。',
+          right: ['$y = x^2 - 2kx + k^2 + 3k$', '$= (x^2 - 2kx + k^2) + 3k$', '$= (x - k)^2 + 3k$', '頂點 $= (k, 3k)$', '檢查：$k = 1$ 時頂點 $(1, 3)$，與圖相符 ✓']
+        },
+        { // 證明經過某點要代入
+          q: '例：$f(x) = x^2 + 4x + 23$。證明 $y = f(x)$ 的圖像經過點 $(3, 44)$。',
+          wrong: ['「由圖可見，圖像經過 $(3, 44)$。」', '或只寫「$f(3) = 44$」，沒有計算過程'],
+          why: '「證明」要寫出代入和計算的過程。只看圖或只寫結果，沒有理據，會失分。',
+          right: ['$f(3) = 3^2 + 4(3) + 23$', '$= 9 + 12 + 23$', '$= 44$', '所以圖像經過點 $(3, 44)$。']
+        }
+      ],
+      tips: [
+        { // 先抽出 x² 係數
+          q: '例：把 $y = 2x^2 - 12x + 5$ 化成 $y = a(x - h)^2 + k$，並寫出頂點。',
+          wrong: ['$y = 2(x^2 - 6x) + 5$', '$= 2(x - 3)^2 - 9 + 5$', '$= 2(x - 3)^2 - 4$，頂點 $(3, -4)$'],
+          why: '括號裏補上的 $9$，括號外面要乘以 $2$，即實際加了 $18$，所以要減 $18$，不是減 $9$。',
+          right: ['$y = 2(x^2 - 6x) + 5$', '$= 2(x^2 - 6x + 9 - 9) + 5$', '$= 2(x - 3)^2 - 18 + 5$', '$= 2(x - 3)^2 - 13$', '頂點 $(3, -13)$。檢查：$x = 3$ 時 $y = 18 - 36 + 5 = -13$ ✓']
+        }
+      ]
+    },
+    /* 第 3 單元 指數與對數 */
+    u03: {
+      notes: [
+        { // 求 log x 後停下
+          q: '例：解 $(#log x)^2 - 3#log x + 2 = 0$。',
+          wrong: ['設 $u = #log x$：$u^2 - 3u + 2 = 0$', '$(u - 1)(u - 2) = 0$', '所以 $x = 1$ 或 $x = 2$'],
+          why: '求到的 $1$ 和 $2$ 是 $#log x$ 的值，不是 $x$ 的值。最後一步要由 $#log x$ 轉回 $x$。',
+          right: ['設 $u = #log x$：$(u - 1)(u - 2) = 0$', '$#log x = 1$ 或 $#log x = 2$', '$x = 10$ 或 $x = 100$', '檢查：$#log 100 = 2$，$2^2 - 3(2) + 2 = 0$ ✓']
+        },
+        { // log a^n = n log a
+          q: '例：$#log 2$、$#log 4$、$#log 8$ 是等差數列還是等比數列？',
+          wrong: ['$2$、$4$、$8$ 是等比數列（公比 $2$）', '所以 $#log 2$、$#log 4$、$#log 8$ 也是等比數列'],
+          why: '取對數之後，乘法變成加法：$#log 2^n = n#log 2$。所以「等比」的數取對數後會變成「等差」。',
+          right: ['$#log 4 = #log 2^2 = 2#log 2$', '$#log 8 = #log 2^3 = 3#log 2$', '數列是 $#log 2$、$2#log 2$、$3#log 2$', '每項相差 $#log 2$，是等差數列']
+        },
+        { // 0 < a < 1
+          q: '例：已知 $0 < a < 1$。$y = #log_a x$ 的圖像應該是上升還是下降？',
+          fig: coordFig({ x: [-0.5, 5.5], y: [-3, 3], k: 30, alt: 'y = log₂ x 上升；y = log 以 1/2 為底 x 下降；兩者都經過 (1, 0)',
+            curves: [
+              { f: x => Math.log2(x), from: 0.02, to: 5.5, cls: 'wr' },
+              { f: x => -Math.log2(x), from: 0.02, to: 5.5, cls: 'gd' }
+            ],
+            pts: { '(1, 0)': [1, 0] },
+            labels: [['a = 2', [4.6, 2.2], 'wr'], ['a = 1/2', [4.6, -2.2], 'gold']] }),
+          leg: [['wr', '$a = 2$（$a > 1$）：上升'], ['gd', '$a = #frac{1}{2}$（$0 < a < 1$）：下降']],
+          wrong: ['對數圖像都是向右上升的', '所以選上升的那條曲線'],
+          why: '只有 $a > 1$ 時圖像才上升。$0 < a < 1$ 時，$x$ 越大，$#log_a x$ 越小，圖像下降。兩種圖像都經過 $(1, 0)$，所以單看這一點分不出來。',
+          right: ['試 $a = #frac{1}{2}$：$x = 2$ 時，$y = #log_{#frac{1}{2}} 2 = -1$', '$x = 4$ 時，$y = -2$', '$x$ 增大，$y$ 減小，所以圖像下降（金色曲線）']
+        }
+      ],
+      tips: [
+        { // 代點排除
+          q: '例：下圖哪一條曲線是 $y = 2 + #log_3 x$？',
+          fig: coordFig({ x: [-0.5, 9.5], y: [-3, 5], k: 26, alt: 'y = log₃ x 經過 (1, 0)；y = 2 + log₃ x 經過 (1, 2)',
+            curves: [
+              { f: x => Math.log(x) / Math.log(3), from: 0.02, to: 9.5, cls: 'wr' },
+              { f: x => 2 + Math.log(x) / Math.log(3), from: 0.02, to: 9.5, cls: 'gd' }
+            ],
+            pts: { '(1, 2)': [1, 2] }, bad: { '(1, 0)': [1, 0] },
+            labels: [['甲', [8.5, 1.4], 'wr'], ['乙', [8.5, 3.4], 'gold']] }),
+          leg: [['wr', '甲：經過 $(1, 0)$'], ['gd', '乙：經過 $(1, 2)$']],
+          wrong: ['對數圖像都經過 $(1, 0)$', '所以選甲'],
+          why: '「經過 $(1, 0)$」只適用於 $y = #log_a x$。這條是 $y = 2 + #log_3 x$，整條向上移了 $2$。與其記憶，不如直接代一個容易計算的點。',
+          right: ['代 $x = 1$：$y = 2 + #log_3 1 = 2 + 0 = 2$', '曲線經過 $(1, 2)$，所以是乙', '再代 $x = 3$ 檢查：$y = 2 + 1 = 3$ ✓']
+        }
+      ]
+    },
+    /* 第 4 單元 多項式 */
+    u04: {
+      notes: [
+        { // 商式是一次式
+          q: '例：$f(x)$ 是三次多項式，$x^3$ 的係數是 $2$。$f(x)$ 除以 $x^2 - 1$ 的餘式是 $3x + 1$，而且 $f(0) = 5$。求 $f(x)$。',
+          wrong: ['設 $f(x) = 2(x^2 - 1) + 3x + 1$', '$= 2x^2 + 3x - 1$'],
+          why: '三次式除以二次式，商式是一次式（$3 - 2 = 1$），要設成 $ax + b$。設成常數，$f(x)$ 就變成二次式了，與題目矛盾。',
+          right: ['設 $f(x) = (x^2 - 1)(2x + b) + 3x + 1$', '$f(0) = 5$：$(-1)(b) + 1 = 5$，$b = -4$', '$f(x) = (x^2 - 1)(2x - 4) + 3x + 1$', '$= 2x^3 - 4x^2 + x + 5$', '檢查：$f(0) = 5$ ✓，$f(1) = 4 = 3(1) + 1$ ✓']
+        },
+        { // 用盡題目條件
+          q: '例：$f(x) = x^3 + ax^2 + bx + c$，$f(0) = 24$，而且 $f(x)$ 可被 $x - 2$ 和 $x + 3$ 整除。求 $a$、$b$、$c$。',
+          wrong: ['$f(2) = 0$：$8 + 4a + 2b + c = 0$', '$f(-3) = 0$：$-27 + 9a - 3b + c = 0$', '兩條方程、三個未知數，解不到……'],
+          why: '題目給的 $f(0) = 24$ 就是第三條方程，而且最容易用：代 $x = 0$，其他項全部變成 $0$，立即得到 $c$。',
+          right: ['$f(0) = c = 24$', '$f(2) = 0$：$8 + 4a + 2b + 24 = 0$，即 $2a + b = -16$', '$f(-3) = 0$：$-27 + 9a - 3b + 24 = 0$，即 $3a - b = 1$', '相加：$5a = -15$，$a = -3$，$b = -10$', '$f(x) = x^3 - 3x^2 - 10x + 24 = (x - 2)(x + 3)(x - 4)$']
+        },
+        { // 無理根 ≠ 非實根
+          q: '例：$(x - 1)(x^2 - 4x + 1) = 0$ 有多少個實根？',
+          fig: coordFig({ x: [-0.8, 4.8], y: [-4, 4], k: 34, alt: 'y = (x − 1)(x² − 4x + 1) 與 x 軸相交三次',
+            curves: [{ f: x => (x - 1) * (x * x - 4 * x + 1), cls: 'gd' }],
+            pts: { '2 − √3': [2 - Math.sqrt(3), 0], '1': [1, 0], '2 + √3': [2 + Math.sqrt(3), 0] } }),
+          leg: [['gd', '圖像與 $x$ 軸相交三次：三個實根']],
+          wrong: ['$x^2 - 4x + 1 = 0$ 不能因式分解', '所以沒有實根，方程只有 $1$ 個實根'],
+          why: '「不能分解」只代表根不是有理數，不代表沒有實根。要計算判別式：$#Delta > 0$ 就有兩個不相等的實根（這裏是無理根）。',
+          right: ['$x - 1 = 0$：$x = 1$', '$x^2 - 4x + 1 = 0$：$#Delta = 16 - 4 = 12 > 0$', '$x = 2 #pm #sqrt{3}$（兩個無理根，但都是實根）', '共有 $3$ 個實根']
+        },
+        { // 「同意嗎」要列根和結論
+          q: '例：$f(x) = (x - 2)(x + 3)(x - 4)$。有人說「$f(x) = 0$ 的所有根都是整數」。你同意嗎？試解釋。',
+          wrong: ['「同意，因為可以因式分解。」'],
+          why: '這個理由不完整：沒有列出根，也沒有說明每個根都符合條件。判斷題要「列出事實＋寫出結論」。',
+          right: ['$f(x) = 0$ 的根是 $x = 2$、$x = -3$、$x = 4$。', '三個根都是整數，', '所以同意該宣稱。']
+        }
+      ],
+      tips: [
+        { // 代回檢查
+          q: '例：$f(x) = x^3 + kx^2 - 4x + 3$ 除以 $x - 1$ 的餘數是 $5$。求 $k$。',
+          wrong: ['$f(-1) = 5$', '$-1 + k + 4 + 3 = 5$', '$k = -1$'],
+          why: '除以 $x - 1$ 要代 $x = 1$，不是 $x = -1$。這類錯誤很難看出來，但代回檢查立即發現：$k = -1$ 時，$f(1) = 1 - 1 - 4 + 3 = -1 #ne 5$。',
+          right: ['$f(1) = 5$', '$1 + k - 4 + 3 = 5$', '$k = 5$', '檢查：$f(1) = 1 + 5 - 4 + 3 = 5$ ✓']
+        }
+      ]
+    },
+    /* 第 5 單元 方程的根與交點 */
+    u05: {
+      notes: [
+        { // 用比例，不是判別式
+          q: '例：直線 $y = 2x$ 與曲線 $y = x^2 + k$ 相交於兩點，兩點的 $x$ 坐標分別是 $#beta$ 和 $3#beta$。求 $k$。',
+          fig: coordFig({ x: [-1, 3], y: [-1, 5], k: 40, alt: 'y = 2x 與 y = x² + 3/4 相交於 x = 0.5 和 x = 1.5',
+            curves: [{ f: x => x * x + 0.75, cls: 's' }],
+            lines: [{ a: [0, 0], b: [1, 2], cls: 'gd' }],
+            pts: { P: [0.5, 1], Q: [1.5, 3] },
+            raws: [[[0.5, 0], [0.5, 1], 'd'], [[1.5, 0], [1.5, 3], 'd']],
+            labels: [['β', [0.5, 0], '', [0, 14]], ['3β', [1.5, 0], '', [0, 14]]] }),
+          leg: [['gd', '$y = 2x$'], ['s', '$y = x^2 + #frac{3}{4}$'], ['d', '交點的 $x$ 坐標：$#beta = #frac{1}{2}$、$3#beta = #frac{3}{2}$']],
+          wrong: ['聯立：$x^2 - 2x + k = 0$', '兩點相交，所以 $#Delta > 0$：$4 - 4k > 0$', '$k < 1$（求不到 $k$ 的值）'],
+          why: '$#Delta > 0$ 只說明有兩個交點，得到的是範圍。題目給了「$#beta$ 和 $3#beta$」這個比例，要用兩根之和與積。',
+          right: ['聯立：$x^2 - 2x + k = 0$，兩根是 $#beta$、$3#beta$', '兩根之和：$#beta + 3#beta = 2$，$#beta = #frac{1}{2}$', '兩根之積：$k = #beta #times 3#beta = 3#beta^2 = #frac{3}{4}$', '檢查：$x^2 - 2x + #frac{3}{4} = 0$，$x = #frac{1}{2}$ 或 $#frac{3}{2}$ ✓']
+        },
+        { // 先化 x² 係數為 1
+          q: '例：$#alpha$、$#beta$ 是 $3x^2 + 6x - 2 = 0$ 的根。求 $#alpha + #beta$ 和 $#alpha#beta$。',
+          wrong: ['$#alpha + #beta = -6$', '$#alpha#beta = -2$'],
+          why: '「和 $= -b$、積 $= c$」只適用於 $x^2$ 的係數是 $1$ 的方程。這裏係數是 $3$，要先除以 $3$，或者用 $-#frac{b}{a}$、$#frac{c}{a}$。',
+          right: ['除以 $3$：$x^2 + 2x - #frac{2}{3} = 0$', '$#alpha + #beta = -2$', '$#alpha#beta = -#frac{2}{3}$']
+        }
+      ]
+    },
+    /* 第 6 單元 變分 */
+    u06: {
+      notes: [
+        { // 聯變 vs 部分變
+          q: '例：$z$ 隨 $x$ 正變並隨 $y$ 反變。當 $x = 2$、$y = 3$ 時，$z = 6$。求 $x = 4$、$y = 6$ 時 $z$ 的值。',
+          wrong: ['設 $z = k_1x + #frac{k_2}{y}$', '代入：$6 = 2k_1 + #frac{k_2}{3}$', '一條方程、兩個未知數，解不到……'],
+          why: '「隨 $x$ 正變並隨 $y$ 反變」是聯變，各部分相乘，只有一個常數：$z = #frac{kx}{y}$。兩個常數相加（$k_1x + #frac{k_2}{y}$）是部分變，題目會寫「部分隨……部分隨……」。',
+          right: ['設 $z = #frac{kx}{y}$', '$6 = #frac{k(2)}{3}$，$k = 9$', '$z = #frac{9x}{y}$', '$x = 4$、$y = 6$：$z = #frac{9(4)}{6} = 6$']
+        },
+        null
+      ],
+      tips: [
+        { // 設原值為 1
+          q: '例：$z$ 隨 $x^2$ 正變並隨 $y$ 反變。若 $x$ 增加 $20%$，$y$ 減少 $10%$，求 $z$ 的百分變化。',
+          wrong: ['$x$ 增加 $20%$，$x^2$ 增加 $40%$', '$y$ 減少 $10%$，$z$ 增加 $10%$', '$z$ 共增加 $40% + 10% = 50%$'],
+          why: '百分變化不能直接相加。$x^2$ 的變化要用 $1.2^2$ 計算，反變要除以 $0.9$。',
+          right: ['設 $z = #frac{kx^2}{y}$，原來 $x = 1$、$y = 1$，$z = k$', '新的 $z = #frac{k(1.2)^2}{0.9} = #frac{1.44k}{0.9} = 1.6k$', '$z$ 增加 $60%$']
+        }
+      ]
+    },
+    /* 第 7 單元 等差與等比數列 */
+    u07: {
+      notes: [
+        { // 公式混淆
+          q: '例：等比數列 $3$、$6$、$12$、…… 的第 $10$ 項是甚麼？',
+          wrong: ['$T(10) = 3 #times 2^{10} = 3072$', '（或用了等差的公式：$3 + 9 #times 3 = 30$）'],
+          why: '等比數列第 $n$ 項是 $ar^{n - 1}$，指數是 $n - 1$，因為第 $1$ 項還未乘公比。等差數列才是 $a + (n - 1)d$。',
+          right: ['$a = 3$，$r = #frac{6}{3} = 2$', '$T(n) = ar^{n - 1}$', '$T(10) = 3 #times 2^9 = 1536$', '檢查：$T(3) = 3 #times 2^2 = 12$ ✓']
+        },
+        { // 寫出求根算式
+          q: '例：等差數列 $2$、$5$、$8$、……。最少要取多少項，總和才大於 $500$？',
+          wrong: ['$#frac{n}{2}[2(2) + (n - 1)(3)] > 500$', '用計算機得 $n > 18.09$', '所以 $n = 19$（沒有算式，失方法分）'],
+          why: '答案雖然對，但「用計算機得」沒有展示方法。要寫出化簡後的二次不等式和求根公式的算式，才拿到方法分。',
+          right: ['$#frac{n}{2}(3n + 1) > 500$', '$3n^2 + n - 1000 > 0$', '$3n^2 + n - 1000 = 0$ 的根：$n = #frac{-1 #pm #sqrt{1 + 12000}}{6}$', '$n #approx 18.09$ 或 $n #approx -18.42$', '$n$ 是正整數，所以 $n > 18.09$，最少 $19$ 項', '（檢查：$S(18) = 495$，$S(19) = 551$ ✓）']
+        },
+        { // 求得後檢查
+          q: '例：等差數列的第 $3$ 項是 $11$，第 $7$ 項是 $23$。求首項 $a$ 和公差 $d$。',
+          wrong: ['$a + 3d = 11$，$a + 7d = 23$', '相減：$4d = 12$，$d = 3$', '$a = 11 - 9 = 2$'],
+          why: '第 $n$ 項是 $a + (n - 1)d$，第 $3$ 項是 $a + 2d$，不是 $a + 3d$。代回檢查就會發現錯誤：$a = 2$、$d = 3$ 時第 $3$ 項是 $8$，不是 $11$。',
+          right: ['$a + 2d = 11$，$a + 6d = 23$', '相減：$4d = 12$，$d = 3$', '$a = 11 - 6 = 5$', '檢查：數列 $5, 8, 11, 14, 17, 20, 23$，第 $3$ 項 $11$ ✓，第 $7$ 項 $23$ ✓']
+        }
+      ]
+    },
+    /* 第 8 單元 不等式與線性規劃 */
+    u08: {
+      notes: [
+        { // 除以負數要反轉
+          q: '例：解 $-3x + 5 < 11$。',
+          wrong: ['$-3x < 6$', '$x < -2$'],
+          why: '兩邊除以負數 $-3$，不等號要反轉。代 $x = -3$ 檢查錯答案：$-3(-3) + 5 = 14$，並不小於 $11$。',
+          right: ['$-3x < 6$', '兩邊除以 $-3$，不等號反轉：$x > -2$', '檢查：代 $x = 0$，$5 < 11$ ✓']
+        },
+        { // 不少於 vs 多於
+          q: '例：每張門票 $40$ 元。收入不少於 $600$ 元，最少要賣出多少張？',
+          wrong: ['$40n > 600$', '$n > 15$', '最少 $16$ 張'],
+          why: '「不少於」即「大於或等於」，要用 $#ge$。賣 $15$ 張剛好收 $600$ 元，已經「不少於 $600$ 元」。',
+          right: ['$40n #ge 600$', '$n #ge 15$', '最少 $15$ 張']
+        },
+        { // 線性規劃：最大／最小；點是否在區域內
+          q: '例：可行區域由 $x #ge 0$、$y #ge 0$、$x + y #le 6$、$x + 2y #le 8$ 定出。求 $P = 3x + 4y$ 的最大值。',
+          fig: coordFig({ x: [-2, 9], y: [-1, 7], k: 30, lab: { '(0, 4)': [-30, -4] }, alt: '可行區域：頂點 (0, 0)、(6, 0)、(4, 2)、(0, 4)；點 (3, 3) 在區域外',
+            polys: [{ pts: [[0, 0], [6, 0], [4, 2], [0, 4]] }],
+            lines: [{ a: [0, 6], b: [6, 0], cls: 's' }, { a: [0, 4], b: [8, 0], cls: 's' }],
+            pts: { '(0, 4)': [0, 4], '(4, 2)': [4, 2], '(6, 0)': [6, 0] }, bad: { '✗ (3, 3)': [3, 3] },
+            labels: [['x + y = 6', [1.3, 4.7]], ['x + 2y = 8', [7.2, 0.4]]] }),
+          leg: [['fill', '可行區域'], ['wr', '$(3, 3)$：$3 + 2(3) = 9 > 8$，在區域外']],
+          wrong: ['試 $(3, 3)$：$P = 3(3) + 4(3) = 21$', '最大值是 $21$'],
+          why: '$(3, 3)$ 滿足 $x + y #le 6$，但不滿足 $x + 2y #le 8$，所以不在可行區域內，不能用。最大值和最小值只會在可行區域的頂點出現，要逐個頂點計算。',
+          right: ['頂點：$(0, 0)$、$(6, 0)$、$(4, 2)$、$(0, 4)$', '$P$ 的值：$0$、$18$、$20$、$16$', '最大值是 $20$，在 $(4, 2)$', '（題目問最小值的話，答案是 $0$，不要看錯）']
+        },
+        { // 及 vs 或
+          q: '例：解 $2x - 1 > 3$ 或 $x + 4 < 2$。',
+          fig: coordFig({ x: [-4.7, 4.7], y: [-1, 0.8], k: 30, grid: false, axes: false, alt: '數線：x < −2 和 x > 2 兩段都是答案',
+            raws: [[[-4.7, 0], [4.7, 0], 's'], [[-4.5, 0], [-2, 0], 'ray'], [[2, 0], [4.5, 0], 'ray']],
+            opens: { '−2': [-2, 0], '2': [2, 0] }, lab: { '−2': [0, -16], '2': [0, -16] },
+            text: [[-4, -0.75, '−4'], [0, -0.75, '0'], [4, -0.75, '4']] }),
+          leg: [['ray', '答案：兩段都要（「或」= 合併）']],
+          wrong: ['第一條：$x > 2$；第二條：$x < -2$', '沒有 $x$ 同時大於 $2$ 又小於 $-2$', '所以無解'],
+          why: '「無解」是把「或」當成「及」，只取了兩段的重疊部分。「或」只要符合其中一條就可以，答案是兩段合併。',
+          right: ['$2x - 1 > 3$：$x > 2$', '$x + 4 < 2$：$x < -2$', '「或」：答案是 $x < -2$ 或 $x > 2$', '（若題目是「及」，才取重疊部分；這題沒有重疊，「及」才會無解）']
+        }
+      ],
+      tips: [
+        { // 區域不封閉
+          q: '例：可行區域由 $x #ge 0$、$y #ge 0$、$x + y #ge 4$ 定出。求 $P = 2x + y$ 的最小值和最大值。',
+          fig: coordFig({ x: [-1, 8], y: [-1, 7], k: 30, alt: '可行區域在直線 x + y = 4 的右上方，沒有邊界；P = 2x + y 的直線向右上平移時 P 不斷增大',
+            polys: [{ pts: [[4, 0], [8, 0], [8, 7], [0, 7], [0, 4]] }],
+            lines: [{ a: [0, 4], b: [4, 0], cls: 's' }, { a: [0, 4], b: [2, 0], cls: 'gd' }, { a: [1.5, 7], b: [5, 0], cls: 'd' }],
+            pts: { '(0, 4)': [0, 4], '(4, 0)': [4, 0] } }),
+          leg: [['fill', '可行區域（向右上方無限延伸）'], ['s', '邊界 $x + y = 4$'], ['gd', '$2x + y = 4$：經過 $(0, 4)$，$P$ 最小'], ['d', '$2x + y = 10$：向右上平移，$P$ 更大']],
+          wrong: ['頂點只有 $(0, 4)$ 和 $(4, 0)$', '$P$ 的值：$4$ 和 $8$', '最小值 $4$，最大值 $8$'],
+          why: '區域沒有封閉，向右上方無限延伸。例如 $(10, 0)$ 也在區域內，$P = 20 > 8$。所以 $P$ 沒有最大值。先畫草圖，才看到區域是否封閉。',
+          right: ['畫圖：區域在 $x + y = 4$ 的右上方，沒有上限', '把 $2x + y = c$ 向左下平移，最後碰到 $(0, 4)$', '最小值 $= 2(0) + 4 = 4$', '向右上平移可以無限增大，所以沒有最大值']
+        }
+      ]
+    },
+    /* 第 9 單元 函數圖像的變換 */
+    u09: {
+      notes: [
+        { // f(x/5) + 7
+          q: '例：$y = f(x)$ 的頂點是 $(1, -2)$。求 $y = f(#frac{x}{5}) + 7$ 的頂點。',
+          fig: coordFig({ x: [-2, 12], y: [-3, 8], k: 24, alt: 'y = f(x) 頂點 (1, −2)；y = f(x/5) + 7 頂點 (5, 5)',
+            curves: [{ f: x => (x - 1) * (x - 1) - 2, cls: 's' }, { f: x => (x / 5 - 1) * (x / 5 - 1) + 5, cls: 'gd' }],
+            pts: { '(1, −2)': [1, -2], '(5, 5)': [5, 5] },
+            labels: [['y = f(x)', [3.4, 2.3]], ['y = f(x/5) + 7', [8.8, 7.4], 'gold']] }),
+          leg: [['s', '$y = f(x)$'], ['gd', '$y = f(#frac{x}{5}) + 7$：沿 $x$ 軸放大 $5$ 倍，再向上移 $7$']],
+          wrong: ['沿 $y$ 軸放大 $5$ 倍，再向下移 $7$ 單位', '頂點 $(1, 5(-2) - 7) = (1, -17)$'],
+          why: '$#frac{x}{5}$ 在括號內，影響 $x$ 坐標：沿 $x$ 軸放大 $5$ 倍（$x$ 坐標乘 $5$）。$+7$ 在括號外，影響 $y$ 坐標：向上移 $7$。',
+          right: ['括號內 $#frac{x}{5}$：$x$ 坐標 $#times 5$，$1 #to 5$', '括號外 $+7$：$y$ 坐標 $+7$，$-2 #to 5$', '頂點 $(5, 5)$', '檢查：$f(#frac{5}{5}) + 7 = f(1) + 7 = -2 + 7 = 5$ ✓']
+        },
+        { // 先反射還是先平移
+          q: '例：$f(x) = (x - 2)^2 + 1$。把 $y = f(x)$ 先沿 $x$ 軸反射，再向上平移 $4$ 單位，得 $y = g(x)$。求 $g(x)$ 的頂點。',
+          fig: coordFig({ x: [-1, 5], y: [-6, 5], k: 28, alt: 'f 頂點 (2, 1)；正確的 g = −f + 4 頂點 (2, 3)；錯誤的 −f − 4 頂點 (2, −5)',
+            curves: [{ f: x => (x - 2) * (x - 2) + 1, cls: 's' }, { f: x => -((x - 2) * (x - 2) + 1) + 4, cls: 'gd' }, { f: x => -((x - 2) * (x - 2) + 1) - 4, cls: 'wr' }],
+            pts: { '(2, 1)': [2, 1], '(2, 3)': [2, 3] }, bad: { '(2, −5)': [2, -5] } }),
+          leg: [['s', '$y = f(x)$'], ['gd', '先反射後平移：$y = -f(x) + 4$'], ['wr', '次序弄錯：$y = -[f(x) + 4]$']],
+          wrong: ['先向上移 $4$：$f(x) + 4$', '再反射：$g(x) = -[f(x) + 4] = -f(x) - 4$', '頂點 $(2, -5)$'],
+          why: '題目是先反射、後平移，次序不能調換。反射把整個式子變號；之後才加 $4$，所以 $4$ 不會被變號。',
+          right: ['反射：$y = -f(x)$，頂點 $(2, 1) #to (2, -1)$', '向上移 $4$：$g(x) = -f(x) + 4$，頂點 $(2, -1) #to (2, 3)$', '頂點 $(2, 3)$']
+        },
+        { // y = -f(3x)
+          q: '例：$y = f(x)$ 的頂點是 $(6, 2)$。求 $y = -f(3x)$ 的頂點。',
+          wrong: ['$3x$：$x$ 坐標乘 $3$，$6 #to 18$', '負號：$y$ 坐標變號，$2 #to -2$', '頂點 $(18, -2)$'],
+          why: '括號內的改變方向「相反」：$f(3x)$ 是沿 $x$ 軸縮小到 $#frac{1}{3}$，$x$ 坐標要除以 $3$。可以用「括號內等於原來的值」來求：$3x = 6$。',
+          right: ['頂點要令括號內 $= 6$：$3x = 6$，$x = 2$', '$y$ 坐標：$-f(6) = -2$', '頂點 $(2, -2)$', '檢查：$-f(3 #times 2) = -f(6) = -2$ ✓']
+        }
+      ],
+      tips: [
+        { // f(x - 3) 向右
+          q: '例：$y = f(x)$ 的頂點是 $(1, 4)$。求 $y = f(x - 3)$ 的頂點。',
+          fig: coordFig({ x: [-4, 7], y: [-2, 6], k: 28, alt: 'y = f(x) 頂點 (1, 4)；y = f(x − 3) 向右移 3，頂點 (4, 4)；錯誤答案 (−2, 4)',
+            curves: [{ f: x => -(x - 1) * (x - 1) + 4, cls: 's' }, { f: x => -(x - 4) * (x - 4) + 4, cls: 'gd' }],
+            pts: { '(1, 4)': [1, 4], '(4, 4)': [4, 4] }, bad: { '✗ (−2, 4)': [-2, 4] } }),
+          leg: [['s', '$y = f(x)$'], ['gd', '$y = f(x - 3)$：向右移 $3$']],
+          wrong: ['「$-3$」所以向左移 $3$', '頂點 $(-2, 4)$'],
+          why: '括號內的改變方向相反：$x - 3$ 是向右移 $3$。用「括號內等於原來的值」來想：$x - 3 = 1$，$x = 4$。',
+          right: ['令 $x - 3 = 1$：$x = 4$', '$y$ 坐標不變：$4$', '頂點 $(4, 4)$（向右移 $3$）']
+        }
+      ]
+    },
+    /* 第 10 單元 直線的方程 */
+    u10: {
+      notes: [
+        { // 一般式的斜率
+          q: '例：求直線 $3x + 2y - 6 = 0$ 的斜率。',
+          fig: coordFig({ x: [-2, 5], y: [-2, 6], k: 30, alt: '直線 3x + 2y − 6 = 0 經過 (2, 0) 和 (0, 3)，向右下傾斜；錯誤斜率 3/2 的直線向右上傾斜',
+            lines: [{ a: [2, 0], b: [0, 3], cls: 'gd' }, { a: [0, 3], b: [2, 6], cls: 'wr' }],
+            pts: { '(0, 3)': [0, 3], '(2, 0)': [2, 0] } }),
+          leg: [['gd', '$3x + 2y - 6 = 0$：向右下傾斜，斜率是負數'], ['wr', '斜率 $#frac{3}{2}$ 的直線：方向完全不同']],
+          wrong: ['斜率 $= #frac{A}{B} = #frac{3}{2}$'],
+          why: '一般式 $Ax + By + C = 0$ 的斜率是 $-#frac{A}{B}$，漏了負號。看兩個截距：直線經過 $(0, 3)$ 和 $(2, 0)$，向右下傾斜，斜率一定是負數。',
+          right: ['化成 $y = mx + c$：$2y = -3x + 6$', '$y = -#frac{3}{2}x + 3$', '斜率 $= -#frac{3}{2}$', '檢查：$#frac{0 - 3}{2 - 0} = -#frac{3}{2}$ ✓']
+        },
+        { // 不要假設垂直
+          q: '例：$A(1, 1)$、$B(5, 3)$、$C(4, 6)$。$AB$ 是否垂直於 $BC$？',
+          fig: coordFig({ x: [0, 6], y: [0, 7], k: 32, axes: false, alt: '三角形 ABC，角 B 看似直角，實際約 98 度',
+            pts: { A: [1, 1], B: [5, 3], C: [4, 6] }, segs: [['A', 'B', 's'], ['B', 'C', 's'], ['A', 'C', 'd']], arcs: [['A', 'B', 'C', '≈ 98°']] }),
+          leg: [['s', '$#angle ABC$ 看起來像直角，但實際約 $98#deg$']],
+          wrong: ['「從圖可見 $#angle ABC = 90#deg$」', '所以 $AB #perp BC$'],
+          why: '圖可能不按比例，「看起來垂直」不是理由。要用斜率計算：兩線垂直，斜率的積是 $-1$。',
+          right: ['$AB$ 的斜率 $= #frac{3 - 1}{5 - 1} = #frac{1}{2}$', '$BC$ 的斜率 $= #frac{6 - 3}{4 - 5} = -3$', '積 $= #frac{1}{2} #times (-3) = -#frac{3}{2} #ne -1$', '所以 $AB$ 不垂直於 $BC$']
+        }
+      ],
+      tips: [
+        { // 先畫草圖
+          q: '例：$A(1, 2)$、$B(5, 2)$、$C(3, 6)$。求 $#triangle ABC$ 的面積。',
+          fig: coordFig({ x: [0, 6], y: [0, 7], k: 32, alt: '草圖：AB 水平，長 4；C 到 AB 的高是 4',
+            pts: { A: [1, 2], B: [5, 2], C: [3, 6], H: [3, 2] }, segs: [['A', 'B', 'gd'], ['B', 'C', 's'], ['A', 'C', 's'], ['C', 'H', 'd']], right: [['C', 'H', 'B']],
+            text: [[2, 1.35, '4', 'gold'], [3.35, 4, '4']] }),
+          leg: [['gd', '底 $AB$：水平，長 $4$'], ['d', '高 $CH = 4$']],
+          wrong: ['$CA = #sqrt{20}$，$CB = #sqrt{20}$，以為 $#angle C = 90#deg$', '面積 $= #frac{1}{2} #times #sqrt{20} #times #sqrt{20} = 10$'],
+          why: '$CA = CB$ 只說明三角形是等腰，不代表 $#angle C$ 是直角。畫了草圖就看到 $AB$ 是水平的，直接用「底 $#times$ 高」最快。',
+          right: ['草圖：$A$、$B$ 的 $y$ 坐標相同，$AB$ 水平', '底 $AB = 5 - 1 = 4$', '高 $= 6 - 2 = 4$', '面積 $= #frac{1}{2} #times 4 #times 4 = 8$']
+        }
+      ]
+    }
+  };
+  for (const [uid, add] of Object.entries(EX)) {
+    const u = UNITS.find(x => x.id === uid); if (!u) continue;
+    const s = u.stations.find(x => x.kind === 'dse'); if (!s) continue;
+    ['notes', 'tips'].forEach(key => (add[key] || []).forEach((ex, i) => { if (ex && s[key] && s[key][i]) s[key][i].ex = ex; }));
+  }
+})();
+
+/* 考評局提醒的「看例子」（第 11–18 單元，第 13 單元在 xn_ex.js）。null 表示該條提醒不需要例子。 */
+(() => {
+  const pol = (r, d) => [r * Math.cos(d * Math.PI / 180), r * Math.sin(d * Math.PI / 180)];
+  const pj = (x, y, z) => [x + 0.55 * y, z + 0.35 * y]; // 立體圖：斜投影
+  const pl = (x, y, z) => [x - 0.55 * y, z + 0.35 * y]; // 向左後方的斜投影
+  const EX = {
+    /* 第 11 單元 圓的基本性質 */
+    u11: {
+      notes: [
+        { // 交錯弓形的圓周角
+          q: '例：$TA$ 是圓在 $A$ 點的切線，$B$、$C$ 在圓上，$#angle TAB = 50#deg$。求 $#angle ACB$。',
+          fig: coordFig({ x: [-4.5, 5], y: [-4, 3.8], k: 34, grid: false, axes: false, alt: '切線 TA，弦 AB 與切線成 50 度，C 在優弧上，角 ACB 等於 50 度',
+            pts: { A: pol(3, 270), B: pol(3, 10), C: pol(3, 150), T: [4.3, -3] },
+            circles: [{ c: [0, 0], r: 3, cls: 's' }],
+            raws: [[[-4.3, -3], [4.3, -3], 's']],
+            segs: [['A', 'B', 'gd'], ['A', 'C', 's'], ['C', 'B', 's']],
+            arcs: [['T', 'A', 'B', '50°', 'gd'], ['A', 'C', 'B', '?', 'gd']] }),
+          leg: [['gd', '切線與弦的夾角 $=$ 交錯弓形的圓周角']],
+          wrong: ['切線垂直於半徑，所以 $90#deg - 50#deg = 40#deg$', '$#angle ACB = 40#deg$'],
+          why: '這裏沒有畫出半徑，「$90#deg - 50#deg$」沒有幾何根據。切線和弦的夾角，等於另一邊弓形（交錯弓形）上的圓周角。',
+          right: ['$#angle ACB = #angle TAB$（交錯弓形的圓周角）', '$#angle ACB = 50#deg$']
+        },
+        { // 半圓上的圓周角
+          q: '例：$AB$ 是圓的直徑，$C$ 在圓上，$#angle CAB = 35#deg$。求 $#angle ABC$。',
+          fig: coordFig({ x: [-4, 4], y: [-3.6, 3.8], k: 34, grid: false, axes: false, alt: 'AB 是直徑，C 在圓上，角 ACB 是直角',
+            pts: { A: [-3, 0], B: [3, 0], C: pol(3, 70), O: [0, 0] },
+            circles: [{ c: [0, 0], r: 3, cls: 's' }],
+            segs: [['A', 'B', 'gd'], ['A', 'C', 's'], ['C', 'B', 's']], right: [['A', 'C', 'B']],
+            arcs: [['C', 'A', 'B', '35°']] }),
+          leg: [['gd', '$AB$ 經過圓心 $O$，是直徑：$#angle ACB = 90#deg$']],
+          wrong: ['「只知道一隻角，條件不足。」', '或者猜 $#angle ABC = 35#deg$'],
+          why: '沒有察覺 $AB$ 是直徑。見到直徑，立即標出直角：半圓上的圓周角是 $90#deg$。',
+          right: ['$#angle ACB = 90#deg$（半圓上的圓周角）', '$#angle ABC = 180#deg - 90#deg - 35#deg$（三角形內角和）', '$#angle ABC = 55#deg$']
+        },
+        { // 不要假設相等
+          q: '例：$ABCD$ 內接於圓，$#angle BAD = 70#deg$，$#angle CBD = 30#deg$。求 $#angle BDC$。',
+          fig: coordFig({ x: [-4, 4], y: [-3.8, 4], k: 34, grid: false, axes: false, alt: '圓內接四邊形 ABCD 和對角線 BD；BC 和 CD 的長度並不相等',
+            pts: { A: pol(3, 90), B: pol(3, 200), C: pol(3, 280), D: pol(3, 340) },
+            circles: [{ c: [0, 0], r: 3, cls: 's' }],
+            segs: [['A', 'B', 's'], ['B', 'C', 's'], ['C', 'D', 's'], ['D', 'A', 's'], ['B', 'D', 'd']],
+            arcs: [['B', 'A', 'D', '70°'], ['C', 'B', 'D', '30°'], ['B', 'D', 'C', '?', 'gd']] }),
+          leg: [['d', '對角線 $BD$']],
+          wrong: ['$BC = CD$（看起來差不多長）', '所以 $#angle BDC = #angle CBD = 30#deg$'],
+          why: '題目沒有說 $BC = CD$，不能「看起來」就假設。實際上 $BC #ne CD$。要用有根據的性質：圓內接四邊形的對角互補。',
+          right: ['$#angle BCD = 180#deg - 70#deg = 110#deg$（圓內接四邊形的對角）', '$#angle BDC = 180#deg - 110#deg - 30#deg$（三角形內角和）', '$#angle BDC = 40#deg$']
+        },
+        { // 另一條弦不是直徑
+          q: '例：$AB$ 是直徑，$AB = 10$。弦 $CD #perp AB$，交 $AB$ 於 $E$，$AE = 2$。求 $CD$。',
+          fig: coordFig({ x: [-6, 6], y: [-5.6, 5.6], k: 24, grid: false, axes: false, alt: 'AB 是直徑，圓心 O；弦 CD 垂直於 AB，交點 E 不是圓心',
+            pts: { A: [-5, 0], B: [5, 0], O: [0, 0], E: [-3, 0], C: [-3, 4], D: [-3, -4] },
+            circles: [{ c: [0, 0], r: 5, cls: 's' }],
+            segs: [['A', 'B', 's'], ['C', 'D', 'gd'], ['O', 'C', 'd']], right: [['C', 'E', 'B']],
+            labels: [['5', [-1.5, 2], ''], ['3', [-1.5, 0], '', [0, 12]]] }),
+          leg: [['gd', '弦 $CD$：不經過圓心，不是直徑'], ['d', '半徑 $OC = 5$']],
+          wrong: ['$CD$ 也是直徑，$E$ 是圓心', '$CD = AB = 10$'],
+          why: '圓心是 $AB$ 的中點 $O$，$AE = 2$，所以 $E$ 不是圓心，$CD$ 不是直徑。要連接半徑 $OC$，用「圓心到弦的垂線平分弦」。',
+          right: ['半徑 $= 5$，$OE = 5 - 2 = 3$', '$CE = #sqrt{OC^2 - OE^2} = #sqrt{25 - 9} = 4$', '$OE #perp CD$，所以 $E$ 是 $CD$ 的中點', '$CD = 2 #times 4 = 8$']
+        }
+      ],
+      tips: [
+        { // 切線先標直角
+          q: '例：$PT$ 是圓在 $T$ 點的切線，$O$ 是圓心，$OT = 5$，$PT = 12$。求 $OP$。',
+          fig: coordFig({ x: [-6, 14], y: [-5.8, 6.4], k: 20, grid: false, axes: false, alt: '切線 PT 垂直於半徑 OT，三角形 OTP 是直角三角形',
+            pts: { O: [0, 0], T: [25 / 13, 60 / 13], P: [13, 0] },
+            circles: [{ c: [0, 0], r: 5, cls: 's' }],
+            segs: [['O', 'T', 'gd'], ['T', 'P', 'gd'], ['O', 'P', 'd']], right: [['O', 'T', 'P']],
+            labels: [['5', [0.96, 2.31], 'gold'], ['12', [7.46, 2.31], 'gold']] }),
+          leg: [['gd', '切線 $#perp$ 半徑：$#angle OTP = 90#deg$'], ['d', '$OP$ 是斜邊']],
+          wrong: ['$OP = OT + TP = 5 + 12 = 17$'],
+          why: '$O$、$T$、$P$ 不在同一直線上，長度不能直接相加。先標出直角：切線垂直於經過切點的半徑。',
+          right: ['$#angle OTP = 90#deg$（切線 $#perp$ 半徑）', '$OP = #sqrt{5^2 + 12^2}$（畢氏定理）', '$OP = 13$']
+        }
+      ]
+    },
+    /* 第 12 單元 軌跡 */
+    u12: {
+      notes: [
+        { // 不是垂直平分線
+          q: '例：$A(0, 0)$、$B(3, 0)$。動點 $P$ 移動時 $PA = 2PB$。求 $P$ 的軌跡方程。',
+          fig: coordFig({ x: [-1, 7], y: [-3, 3.4], k: 34, alt: 'PA = 2PB 的軌跡是圓心 (4, 0)、半徑 2 的圓；直線 x = 1.5 是錯誤答案',
+            pts: { A: [0, 0], B: [3, 0], P: [3.653, 1.970] },
+            circles: [{ c: [4, 0], r: 2, cls: 'gd' }],
+            lines: [{ a: [1.5, 0], b: [1.5, 1], cls: 'wr' }],
+            segs: [['P', 'A', 'd'], ['P', 'B', 'd']] }),
+          leg: [['gd', '正確的軌跡：圓 $x^2 + y^2 - 8x + 12 = 0$'], ['wr', '錯誤答案：$x = 1.5$（只適用於 $PA = PB$）']],
+          wrong: ['$P$ 和 $A$、$B$ 兩點的距離有關', '所以軌跡是 $AB$ 的垂直平分線 $x = 1.5$'],
+          why: '垂直平分線是 $PA = PB$ 的軌跡。這題是 $PA = 2PB$，兩段長度不相等，要設 $P(x, y)$ 用距離公式列方程。',
+          right: ['設 $P(x, y)$：$#sqrt{x^2 + y^2} = 2#sqrt{(x - 3)^2 + y^2}$', '平方：$x^2 + y^2 = 4(x^2 - 6x + 9 + y^2)$', '$3x^2 + 3y^2 - 24x + 36 = 0$', '$x^2 + y^2 - 8x + 12 = 0$（圓心 $(4, 0)$，半徑 $2$）', '檢查：$(6, 0)$ 在圓上，$PA = 6$，$PB = 3$ ✓']
+        },
+        { // 動點、定點；化簡成指定形式
+          q: '例：$A(1, 2)$、$B(5, 4)$ 是定點。動點 $P$ 與 $A$、$B$ 的距離相等。求 $P$ 的軌跡方程。',
+          fig: coordFig({ x: [-0.5, 7], y: [-0.5, 7], k: 32, alt: 'P 在直線 2x + y − 9 = 0 上，PA = PB',
+            pts: { A: [1, 2], B: [5, 4], P: [2, 5] },
+            lines: [{ a: [2, 5], b: [4.5, 0], cls: 'gd' }],
+            segs: [['A', 'B', 's'], ['P', 'A', 'd'], ['P', 'B', 'd']] }),
+          leg: [['gd', '軌跡：$2x + y - 9 = 0$'], ['d', '$PA = PB$']],
+          wrong: ['$(x - 1)^2 + (y - 2)^2 = (x - 5)^2 + (y - 4)^2$', '（就此停下，沒有化簡）', '或者把 $A$ 的坐標設成 $(x, y)$，動點和定點混淆'],
+          why: '$(x, y)$ 是動點 $P$ 的坐標，$A$、$B$ 的坐標是已知數。列式後要展開化簡，寫成 $ax + by + c = 0$ 的形式才算完成。',
+          right: ['設 $P(x, y)$：$(x - 1)^2 + (y - 2)^2 = (x - 5)^2 + (y - 4)^2$', '$-2x + 1 - 4y + 4 = -10x + 25 - 8y + 16$', '$8x + 4y - 36 = 0$', '$2x + y - 9 = 0$', '檢查：$P(2, 5)$，$PA = #sqrt{10}$，$PB = #sqrt{10}$ ✓']
+        },
+        { // 用完整句子描述幾何關係
+          q: '例：（續上題）軌跡 $#Gamma$ 是 $2x + y - 9 = 0$。描述 $#Gamma$ 與線段 $AB$ 的幾何關係。',
+          wrong: ['「$#Gamma$ 和 $AB$ 垂直。」（不完整）', '「$#Gamma$ 是 $AB$ 的中線。」（名詞用錯）'],
+          why: '$#Gamma$ 既垂直於 $AB$，又經過 $AB$ 的中點，兩點都要說出來。正確名詞是「垂直平分線」，要寫成完整句子。',
+          right: ['$#Gamma$ 的斜率 $= -2$，$AB$ 的斜率 $= #frac{1}{2}$，積 $= -1$，所以 $#Gamma #perp AB$', '$AB$ 的中點 $(3, 3)$：$2(3) + 3 - 9 = 0$，在 $#Gamma$ 上', '所以 $#Gamma$ 是 $AB$ 的垂直平分線。']
+        }
+      ]
+    },
+    /* 第 14 單元 三角學的應用 */
+    u14: {
+      notes: [
+        { // 過早捨入
+          q: '例：$#triangle ABC$ 中，$a = 7$，$b = 8$，$C = 40#deg$。求 $c$ 和 $A$（準確至三位有效數字）。',
+          wrong: ['$c^2 = 49 + 64 - 2(7)(8)#cos 40#deg$，$c #approx 5.2$', '$#sin A = #frac{7 #sin 40#deg}{5.2}$', '$A #approx 59.9#deg$'],
+          why: '把 $c$ 捨入成 $5.2$ 再計算下一步，誤差被放大，$A$ 的答案錯了。中途的數值要存入計算機記憶，最後一步才捨入。',
+          right: ['$c^2 = 49 + 64 - 112#cos 40#deg$', '$c = 5.215 651…$（存入計算機記憶，例如 STO A）', '答 $c #approx 5.22$', '$#sin A = #frac{7 #sin 40#deg}{5.215 651…}$', '$A #approx 59.6#deg$']
+        },
+        { // 分辨直角三角形
+          q: '例：長方體 $ABCDEFGH$ 中，底面 $ABCD$ 的 $AB = 4$，$BC = 3$，高 $CG = 6$。求 $AG$ 與底面 $ABCD$ 的交角。',
+          fig: coordFig({ x: [-2.6, 4.8], y: [-0.8, 7.8], k: 40, grid: false, axes: false, alt: '長方體；AG 在底面的投影是 AC，所求的角是角 GAC',
+            pts: { A: pl(0, 0, 0), B: pl(4, 0, 0), C: pl(4, 3, 0), D: pl(0, 3, 0), E: pl(0, 0, 6), F: pl(4, 0, 6), G: pl(4, 3, 6), H: pl(0, 3, 6) },
+            lab: { A: [-12, 8], B: [12, 8], D: [-12, 0] },
+            segs: [['A', 'B', 's'], ['B', 'C', 'd'], ['C', 'D', 'd'], ['D', 'A', 's'], ['D', 'H', 's'], ['E', 'F', 's'], ['F', 'G', 's'], ['G', 'H', 's'], ['H', 'E', 's'], ['A', 'E', 's'], ['B', 'F', 's'], ['C', 'G', 'gd'], ['A', 'C', 'gd'], ['A', 'G', 'gd'], ['B', 'G', 'wr']],
+            right: [['A', 'C', 'G']], arcs: [['C', 'A', 'G', 'θ', 'gd']] }),
+          leg: [['gd', '直角三角形 $GAC$：$#angle GCA = 90#deg$，所求的角是 $#angle GAC$'], ['wr', '$BG$：$#triangle GAB$ 的 $#angle GAB$ 是 $AG$ 與 $AB$ 的夾角，不是所求的角']],
+          wrong: ['在 $#triangle GAB$ 中，$#tan #angle GAB = #frac{BG}{AB} = #frac{#sqrt{45}}{4}$', '交角 $#approx 59.2#deg$'],
+          why: '直線與平面的交角，要用直線在平面上的投影。$G$ 在底面的正下方是 $C$，所以投影是 $AC$，要找的是 $#angle GAC$。$#angle GAB$ 只是 $AG$ 與一條邊 $AB$ 的夾角。',
+          right: ['$GC #perp$ 底面，所以 $#triangle GAC$ 是直角三角形，$#angle GCA = 90#deg$', '$AC = #sqrt{4^2 + 3^2} = 5$', '$#tan #theta = #frac{GC}{AC} = #frac{6}{5}$', '$#theta #approx 50.2#deg$']
+        },
+        { // 兩平面的交角
+          q: '例：立方體 $ABCDEFGH$，底面是 $ABCD$。求平面 $ABGH$ 與底面 $ABCD$ 的交角。',
+          fig: coordFig({ x: [-0.8, 6.8], y: [-0.8, 6.4], k: 32, grid: false, axes: false, alt: '立方體；平面 ABGH 與底面的交線是 AB，交角是角 GBC，等於 45 度',
+            polys: [{ pts: [pj(0, 0, 0), pj(4, 0, 0), pj(4, 4, 4), pj(0, 4, 4)] }],
+            pts: { A: pj(0, 0, 0), B: pj(4, 0, 0), C: pj(4, 4, 0), D: pj(0, 4, 0), E: pj(0, 0, 4), F: pj(4, 0, 4), G: pj(4, 4, 4), H: pj(0, 4, 4) },
+            lab: { A: [-12, 8], B: [10, 10] },
+            segs: [['A', 'B', 's'], ['C', 'D', 'd'], ['D', 'A', 'd'], ['D', 'H', 'd'], ['E', 'F', 's'], ['F', 'G', 's'], ['G', 'H', 's'], ['H', 'E', 's'], ['A', 'E', 's'], ['B', 'F', 's'], ['C', 'G', 's'], ['A', 'H', 's'], ['B', 'C', 'gd'], ['B', 'G', 'gd'], ['A', 'G', 'wr']],
+            right: [['B', 'C', 'G']], arcs: [['C', 'B', 'G', '45°', 'gd']] }),
+          leg: [['fill', '平面 $ABGH$'], ['gd', '$BC #perp AB$、$BG #perp AB$：交角是 $#angle GBC$'], ['wr', '$AG$：$#angle GAC$ 是直線 $AG$ 與底面的交角，不是平面的交角']],
+          wrong: ['所求的角是 $#angle GAC$', '$#tan #angle GAC = #frac{4}{4#sqrt{2}}$，交角 $#approx 35.3#deg$'],
+          why: '兩平面的交角，要在交線上找一點，分別在兩個平面內畫垂直於交線的直線。交線是 $AB$；$BC$ 在底面內垂直於 $AB$，$BG$ 在平面 $ABGH$ 內垂直於 $AB$。',
+          right: ['交線是 $AB$', '$BC #perp AB$（底面內），$BG #perp AB$（平面 $ABGH$ 內）', '交角 $= #angle GBC$', '$#triangle GBC$ 中，$GC = BC$，$#angle GCB = 90#deg$', '$#angle GBC = 45#deg$']
+        },
+        null
+      ]
+    },
+    /* 第 15 單元 排列與組合 */
+    u15: {
+      notes: [
+        null,
+        { // 組合、相乘
+          q: '例：從 $5$ 名男生和 $4$ 名女生中，選出 $2$ 名男生和 $1$ 名女生組成小組。有多少種選法？',
+          wrong: ['$C^5_2 + C^4_1 = 10 + 4 = 14$（應該相乘，卻相加了）', '或 $P^5_2 #times 4 = 80$（小組沒有次序，卻用了排列）'],
+          why: '「選男生」和「選女生」兩件事要同時完成，所以相乘；小組成員沒有次序之分，所以用組合 $C$，不用排列 $P$。',
+          right: ['選 $2$ 名男生：$C^5_2 = 10$', '選 $1$ 名女生：$C^4_1 = 4$', '兩件事都要做，相乘：$10 #times 4 = 40$']
+        }
+      ],
+      tips: [
+        { // 全部 − 不合要求
+          q: '例：從 $5$ 名男生和 $4$ 名女生中選出 $3$ 人，最少要有 $1$ 名女生。有多少種選法？',
+          wrong: ['先選 $1$ 名女生：$C^4_1 = 4$', '其餘 $2$ 人從 $8$ 人中任選：$C^8_2 = 28$', '$4 #times 28 = 112$'],
+          why: '這樣會重複計算。例如女生甲、乙和男生丙：「先選甲，再選乙、丙」和「先選乙，再選甲、丙」是同一組人，卻被數了兩次。',
+          right: ['全部選法：$C^9_3 = 84$', '不合要求（全是男生）：$C^5_3 = 10$', '最少 $1$ 名女生：$84 - 10 = 74$']
+        }
+      ]
+    },
+    /* 第 16 單元 概率 */
+    u16: {
+      notes: [
+        { // 分辨不同情況
+          q: '例：袋中有 $3$ 個紅球和 $2$ 個藍球。不放回地抽兩次，每次一個。求抽到一紅一藍的概率。',
+          fig: coordFig({ x: [-0.3, 8.2], y: [-0.4, 4.4], k: 34, grid: false, axes: false, alt: '樹形圖：先紅後藍和先藍後紅兩條路徑都是一紅一藍',
+            raws: [[[0, 2], [3, 3.2], 's'], [[0, 2], [3, 0.8], 's'], [[3.5, 3.2], [6, 3.8], 's'], [[3.5, 3.2], [6, 2.6], 'gd'], [[3.5, 0.8], [6, 1.4], 'gd'], [[3.5, 0.8], [6, 0.2], 's']],
+            labels: [['紅', [3.25, 3.2], '', [0, 0]], ['藍', [3.25, 0.8], '', [0, 0]], ['紅', [6.25, 3.8], '', [0, 0]], ['藍', [6.25, 2.6], 'gold', [0, 0]], ['紅', [6.25, 1.4], 'gold', [0, 0]], ['藍', [6.25, 0.2], '', [0, 0]],
+              ['3/5', [1.5, 2.6], '', [-4, -14]], ['2/5', [1.5, 1.4], '', [-4, 14]], ['2/4', [4.75, 3.5], '', [0, -13]], ['2/4', [4.75, 2.9], 'gold', [0, 13]], ['3/4', [4.75, 1.1], 'gold', [0, -13]], ['1/4', [4.75, 0.5], '', [0, 13]],
+              ['紅藍', [6.6, 2.6], 'gold', [30, 0]], ['藍紅', [6.6, 1.4], 'gold', [30, 0]]] }),
+          leg: [['gd', '一紅一藍：兩條路徑都要計算']],
+          wrong: ['$P(#text{紅、藍}) = #frac{3}{5} #times #frac{2}{4} = #frac{3}{10}$'],
+          why: '「一紅一藍」包括兩種情況：先紅後藍、先藍後紅。只計算了其中一種。畫樹形圖，就看到有兩條路徑。',
+          right: ['先紅後藍：$#frac{3}{5} #times #frac{2}{4} = #frac{3}{10}$', '先藍後紅：$#frac{2}{5} #times #frac{3}{4} = #frac{3}{10}$', '兩種情況相加：$#frac{3}{10} + #frac{3}{10} = #frac{3}{5}$']
+        },
+        { // 誰先抽
+          q: '例：盒中有 $5$ 張籤，其中 $1$ 張中獎。甲先抽一張，然後乙抽一張（不放回）。求乙中獎的概率。',
+          wrong: ['乙從餘下的 $4$ 張中抽', '$P(#text{乙中獎}) = #frac{1}{4}$'],
+          why: '$#frac{1}{4}$ 是「已知甲沒有中獎」之後的概率。甲先抽，可能已經抽走了中獎的籤；乙要中獎，甲必須先沒有中獎。',
+          right: ['乙中獎 $=$ 甲不中，然後乙中', '$P = #frac{4}{5} #times #frac{1}{4} = #frac{1}{5}$', '（結果和甲中獎的概率 $#frac{1}{5}$ 一樣：先抽後抽，機會相同）']
+        }
+      ]
+    },
+    /* 第 17 單元 離差的度量 */
+    u17: {
+      notes: [
+        { // 方差 vs 標準差
+          q: '例：求數據 $2$、$4$、$6$、$8$ 的方差。',
+          wrong: ['計算機顯示 $#sigma #approx 2.24$', '方差 $#approx 2.24$'],
+          why: '計算機顯示的 $#sigma$ 是標準差。方差是標準差的平方，$#sigma^2$。',
+          right: ['平均數 $= 5$', '方差 $= #frac{(2 - 5)^2 + (4 - 5)^2 + (6 - 5)^2 + (8 - 5)^2}{4} = #frac{20}{4} = 5$', '（標準差 $= #sqrt{5} #approx 2.24$）']
+        },
+        { // 平均數不變；解釋最小
+          q: '例：在數據 $3$、$5$、$7$、$9$ 中加入兩個正整數 $a$、$b$，平均數維持不變。求標準差的最小可能值，並解釋。',
+          wrong: ['要標準差小，加入的數越小越好', '取 $a = b = 1$……'],
+          why: '忽略了「平均數維持不變」，即 $a + b$ 是固定的。而且只寫答案沒有解釋，會失分。',
+          right: ['原平均數 $= 6$，所以 $#frac{24 + a + b}{6} = 6$，$a + b = 12$', '加入的數越接近平均數 $6$，數據越集中', '所以取 $a = b = 6$，標準差最小', '最小標準差 $#approx 1.83$（原來是 $2.24$）']
+        },
+        { // 改變寫正負號；列出 IQR 再比較
+          q: '例：甲班兩次測驗的分數如下圖。寫出四分位數間距的改變，並比較兩次分數的離差。',
+          fig: coordFig({ x: [5.8, 17.6], y: [-1, 3.6], k: 22, grid: false, axes: false, alt: '兩個框線圖：第一次 Q1 = 52、Q3 = 70；第二次 Q1 = 55、Q3 = 68',
+            raws: [
+              [[8, 2.6], [10.4, 2.6], 's'], [[14, 2.6], [17, 2.6], 's'], [[10.4, 2.2], [14, 2.2], 's'], [[10.4, 3], [14, 3], 's'], [[10.4, 2.2], [10.4, 3], 's'], [[14, 2.2], [14, 3], 's'], [[12, 2.2], [12, 3], 's'],
+              [[9, 0.8], [11, 0.8], 's'], [[13.6, 0.8], [16, 0.8], 's'], [[11, 0.4], [13.6, 0.4], 'gd'], [[11, 1.2], [13.6, 1.2], 'gd'], [[11, 0.4], [11, 1.2], 'gd'], [[13.6, 0.4], [13.6, 1.2], 'gd'], [[12.2, 0.4], [12.2, 1.2], 'gd'],
+              [[7.4, -0.25], [17.4, -0.25], 's']],
+            text: [[8, -0.85, '40'], [10, -0.85, '50'], [12, -0.85, '60'], [14, -0.85, '70'], [16, -0.85, '80'], [6.8, 2.45, '第一次'], [6.8, 0.65, '第二次', 'gold']] }),
+          leg: [['s', '第一次：$Q_1 = 52$，$Q_3 = 70$'], ['gd', '第二次：$Q_1 = 55$，$Q_3 = 68$']],
+          wrong: ['四分位數間距的改變是 $5$', '第二次的盒子比較窄，所以比較集中'],
+          why: '「改變」要寫正負號：減少了 $5$，應寫 $-5$。比較離差時，要先列出兩個四分位數間距的數值，再下結論。',
+          right: ['第一次：$70 - 52 = 18$；第二次：$68 - 55 = 13$', '改變 $= 13 - 18 = -5$', '因為 $13 < 18$，第二次分數的離差較小（較集中）。']
+        },
+        { // 標準分反向使用
+          q: '例：測驗的平均分是 $60$，標準差是 $8$。小明的標準分是 $-1.5$。求小明的分數。',
+          fig: coordFig({ x: [10.5, 19.5], y: [-1.1, 1], k: 22, grid: false, axes: false, alt: '數線：平均分 60，標準分 −1.5 對應 48，在平均分以下',
+            raws: [[[10.7, 0], [19.3, 0], 's'], [[12, 0], [15, 0], 'ray']],
+            pts: { '48': [12, 0], '60': [15, 0] }, bad: { '✗ 72': [18, 0] }, lab: { '48': [0, -16], '60': [0, -16], '✗ 72': [0, -16] },
+            labels: [['1.5 個標準差', [13.5, 0], 'gold', [0, 16]]] }),
+          leg: [['ray', '標準分是負數：分數在平均分以下']],
+          wrong: ['$x = 60 + 1.5 #times 8 = 72$'],
+          why: '標準分是 $-1.5$，負號表示低於平均分。代公式時要連負號一起代入。',
+          right: ['$z = #frac{x - #bar{x}}{#sigma}$', '$-1.5 = #frac{x - 60}{8}$', '$x - 60 = -12$', '$x = 48$']
+        }
+      ],
+      tips: [
+        { // 列出所有組合
+          q: '例：數據 $2$、$4$、$x$、$y$ 的平均數是 $4$，$x$、$y$ 是正整數，$x #le y$。求標準差的最大可能值。',
+          wrong: ['猜 $x = y = 5$，標準差 $#approx 1.22$'],
+          why: '沒有列出所有可能，只憑感覺猜。兩數相等反而令數據最集中，標準差最小。',
+          right: ['$x + y = 4 #times 4 - 2 - 4 = 10$', '列出所有組合，用計算機求標準差：', '$(1, 9)$：$3.08$；$(2, 8)$：$2.45$；$(3, 7)$：$1.87$', '$(4, 6)$：$1.41$；$(5, 5)$：$1.22$', '最大可能標準差 $#approx 3.08$（$x = 1$，$y = 9$）']
+        }
+      ]
+    },
+    /* 第 18 單元 統計的應用 */
+    u18: {
+      tips: [
+        { // 抽樣偏差
+          q: '例：想了解全校學生每星期的閱讀時間，在學校圖書館訪問了 $50$ 名學生。這個抽樣方法恰當嗎？',
+          wrong: ['「恰當，因為是隨便找人訪問，屬於隨機抽樣。」'],
+          why: '「隨便找」不等於隨機。在圖書館的學生通常較常閱讀，不在圖書館的學生沒有機會被選中，即每個學生被選中的機會並不相等。',
+          right: ['這是方便抽樣。', '在圖書館的學生較常閱讀，樣本不能代表全校學生。', '結果很可能高估全校學生的閱讀時間，所以不恰當。']
+        },
+        { // 極端值
+          q: '例：一間小公司 $5$ 名職員的月薪（千元）是 $12$、$13$、$14$、$15$、$80$。哪一個平均值較能代表一般職員的月薪？',
+          fig: coordFig({ x: [1.6, 21], y: [-2.4, 3.2], k: 14, grid: false, axes: false, alt: '點圖：四個薪金集中在 12 至 15 千元，一個極端值 80 千元；中位數 14，平均數 26.8',
+            raws: [[[2, -0.6], [20.6, -0.6], 's'], [[3.5, -1.2], [3.5, 2.2], 'gd'], [[6.7, -1.2], [6.7, 1.0], 'wr']],
+            pts: { '': [3, 0], ' ': [3.25, 0], '  ': [3.75, 0], '   ': [20, 0], '    ': [3.5, 0] },
+            text: [[3, -1.9, '12'], [5, -1.9, '20'], [10, -1.9, '40'], [15, -1.9, '60'], [20, -1.9, '80']],
+            labels: [['中位數 14', [3.5, 2.2], 'gold', [8, -10]], ['平均數 26.8', [6.7, 1.0], 'wr', [4, -10]]] }),
+          leg: [['gd', '中位數 $= 14$：在大部分數據之中'], ['wr', '平均數 $= 26.8$：被極端值 $80$ 拉高']],
+          wrong: ['平均數 $= #frac{12 + 13 + 14 + 15 + 80}{5} = 26.8$', '所以一般職員的月薪約 $26.8$ 千元'],
+          why: '$80$ 是極端值，把平均數拉高了。$5$ 人之中有 $4$ 人的月薪少於 $16$ 千元，$26.8$ 千元不能代表一般職員。',
+          right: ['排序：$12$、$13$、$14$、$15$、$80$', '中位數 $= 14$（千元）', '有極端值 $80$，中位數不受影響，較能代表一般職員的月薪。']
+        }
+      ]
+    }
+  };
+  for (const [uid, add] of Object.entries(EX)) {
+    const u = UNITS.find(x => x.id === uid); if (!u) continue;
+    const s = u.stations.find(x => x.kind === 'dse'); if (!s) continue;
+    ['notes', 'tips'].forEach(key => (add[key] || []).forEach((ex, i) => { if (ex && s[key] && s[key][i]) s[key][i].ex = ex; }));
+  }
+})();
+
+/* 考評局提醒的「看例子」（基礎單元 F1–F6）。格式同 xn_ex.js。 */
+(() => {
+  const pol = (r, d) => [r * Math.cos(d * Math.PI / 180), r * Math.sin(d * Math.PI / 180)];
+  const pj = (x, y, z) => [x + 0.55 * y, z + 0.35 * y];
+  const ell = (cx, cy, rx, ry, sgn) => x => cy + sgn * ry * Math.sqrt(Math.max(0, 1 - ((x - cx) / rx) ** 2));
+  const EX = {
+    /* F1 代數基本功 */
+    f1: {
+      notes: [
+        { // 主項變換
+          q: '例：把公式 $a = #frac{3b + 1}{b - 2}$ 的主項變換為 $b$。',
+          wrong: ['$a(b - 2) = 3b + 1$', '$ab - 2a = 3b + 1$', '$ab - 3b = 1 - 2a$', '$b = #frac{1 - 2a}{a - 3}$'],
+          why: '把 $-2a$ 移到右邊時沒有變號，應該變成 $+2a$。移項要整項搬過去並改變正負號；每做一步，最好代一個數檢查。',
+          right: ['$a(b - 2) = 3b + 1$', '$ab - 2a = 3b + 1$', '$ab - 3b = 2a + 1$（含 $b$ 的項放左邊）', '$b(a - 3) = 2a + 1$', '$b = #frac{2a + 1}{a - 3}$', '檢查：$b = 3$ 時 $a = #frac{10}{1} = 10$；代 $a = 10$：$b = #frac{21}{7} = 3$ ✓']
+        },
+        { // 正指數；減去負指數
+          q: '例：化簡 $#frac{(a^2b^{-3})^2}{a^{-3}b}$，並以正指數表示答案。',
+          wrong: ['$= #frac{a^4b^{-6}}{a^{-3}b}$', '$= a^{4 - 3}b^{-6 - 1}$', '$= ab^{-7}$'],
+          why: '有兩個錯：(1) $a^{4 - (-3)}$ 是減去負數，等於 $4 + 3 = 7$，不是 $4 - 3$；(2) 答案留有負指數 $b^{-7}$，題目要求正指數，會失分。',
+          right: ['$= #frac{a^4b^{-6}}{a^{-3}b}$', '$= a^{4 - (-3)}b^{-6 - 1}$', '$= a^7b^{-7}$', '$= #frac{a^7}{b^7}$']
+        },
+        { // (b) 用 (a)
+          q: '例：(a) 因式分解 $x^2 - 4y^2$。(b) 由此因式分解 $x^2 - 4y^2 + 3x - 6y$。',
+          wrong: ['(b) 重新分組：$(x^2 + 3x) - (4y^2 + 6y)$', '$= x(x + 3) - 2y(2y + 3)$', '（沒有公因式，做不下去）'],
+          why: '題目寫「由此」，就是要用 (a) 的結果。把式子分成「(a) 的部分」和「其餘部分」，再找公因式。',
+          right: ['(a) $x^2 - 4y^2 = (x - 2y)(x + 2y)$', '(b) $x^2 - 4y^2 + 3x - 6y$', '$= (x - 2y)(x + 2y) + 3(x - 2y)$', '$= (x - 2y)(x + 2y + 3)$']
+        },
+        { // 直接用平方差
+          q: '例：因式分解 $(3m + 4n)^2 - 36$。',
+          wrong: ['$= 9m^2 + 24mn + 16n^2 - 36$', '（展開後再分組，越做越亂）'],
+          why: '看到「某式的平方 減 一個平方數」，就是平方差：$36 = 6^2$。把 $3m + 4n$ 當作一個整體，不用展開。',
+          right: ['$(3m + 4n)^2 - 6^2$', '$= [(3m + 4n) - 6][(3m + 4n) + 6]$', '$= (3m + 4n - 6)(3m + 4n + 6)$']
+        }
+      ],
+      tips: [
+        { // 代數值法
+          q: '例：$#frac{9^{n + 1}}{3^{2n - 1}} =$　A. $27$　B. $3^{4n}$　C. $9$　D. $3$',
+          wrong: ['底數不同，直接把指數相減：$3^{(n + 1) - (2n - 1)} = 3^{2 - n}$', '與選項都不符，只好猜 C'],
+          why: '$9$ 和 $3$ 底數不同，不能直接減指數，要先把 $9$ 寫成 $3^2$。選擇題更快的方法是代一個簡單的數入去。',
+          right: ['代 $n = 1$：$#frac{9^2}{3^1} = #frac{81}{3} = 27$，只有 A 符合', '（代數方法：$#frac{3^{2n + 2}}{3^{2n - 1}} = 3^{3} = 27$）', '答案：A']
+        },
+        { // 展開檢查中間項
+          q: '例：$6x^2 - x - 12 =$　A. $(2x + 3)(3x - 4)$　B. $(2x - 3)(3x + 4)$',
+          wrong: ['兩個選項的首項都是 $6x^2$，尾項都是 $-12$', '隨便選 A'],
+          why: '兩個選項只差正負號，首項和尾項一樣，分別在中間項。展開一次就知道。',
+          right: ['A：$(2x + 3)(3x - 4) = 6x^2 - 8x + 9x - 12 = 6x^2 + x - 12$ ✗', 'B：$(2x - 3)(3x + 4) = 6x^2 + 8x - 9x - 12 = 6x^2 - x - 12$ ✓', '答案：B']
+        }
+      ]
+    },
+    /* F2 百分數與誤差 */
+    f2: {
+      notes: [
+        { // 複利息；每半年
+          q: '例：把 $30 000$ 元存入銀行，年利率 $6%$，每半年複利計算一次。求 $3$ 年後的利息（準確至最接近的元）。',
+          wrong: ['單利息：$30 000 #times 6% #times 3 = 5 400$ 元', '或 $30 000(1 + 6%)^3 - 30 000 #approx 5 730$ 元（沒有按每半年計）'],
+          why: '題目是複利息，不能用單利息。每半年計一次：每期利率 $= 6% #div 2 = 3%$，期數 $= 3 #times 2 = 6$。',
+          right: ['本利和 $= 30 000(1 + 3%)^6$', '$#approx 35 821.57$ 元', '利息 $#approx 35 821.57 - 30 000 #approx 5 822$ 元', '檢查：比單利息 $5 400$ 元多一點 ✓']
+        },
+        { // 誤差：用哪一個界限
+          q: '例：升降機最大載重 $1000$ kg。每箱貨物量得 $25$ kg（準確至最接近的 kg）。可以肯定最多載多少箱而不會超重？',
+          wrong: ['每箱最輕 $24.5$ kg', '$1000 #div 24.5 #approx 40.8$', '最多 $40$ 箱'],
+          why: '要「肯定不超重」，要假設每箱都是最重的情況。每箱最重是 $25 + 0.5 = 25.5$ kg。用最輕的重量計算，$40$ 箱可能重 $40 #times 25.5 = 1020$ kg，會超重。',
+          right: ['每箱最重 $= 25.5$ kg', '$1000 #div 25.5 #approx 39.2$', '最多 $39$ 箱', '檢查：$39 #times 25.5 = 994.5$ kg $#le 1000$ kg ✓']
+        },
+        { // 單位
+          q: '例：長方形長 $1.2$ m，闊 $80$ cm。求它的面積。',
+          wrong: ['面積 $= 1.2 #times 80 = 96$'],
+          why: '兩個長度的單位不同，不能直接相乘；答案也沒有寫單位，甲部欠單位會扣 $1$ 分。',
+          right: ['$1.2$ m $= 120$ cm', '面積 $= 120 #times 80 = 9600$ cm²', '（或 $1.2 #times 0.8 = 0.96$ m²）']
+        },
+        { // 解釋題寫數值和結論
+          q: '例：一件貨品標價 $800$ 元，先打八折，再減 $50$ 元。小明說售價低於 $600$ 元。他對嗎？試解釋。',
+          wrong: ['「對。」'],
+          why: '只寫「對」沒有理據，不能得分。要寫出計算得的數值，和題目的數比較，再寫結論。',
+          right: ['售價 $= 800 #times 80% - 50 = 640 - 50 = 590$ 元', '$590 < 600$', '所以小明說得對。']
+        }
+      ],
+      tips: [
+        { // 設成本為 C
+          q: '例：貨品的標價比成本高 $40%$。若以標價的九折出售，盈利百分率是多少？',
+          wrong: ['$40% - 10% = 30%$'],
+          why: '$40%$ 是對成本說的，九折的 $10%$ 是對標價說的，兩者的「全部」不同，不能直接相減。把所有價錢用成本 $C$ 表示。',
+          right: ['設成本 $= C$', '標價 $= 1.4C$', '售價 $= 1.4C #times 0.9 = 1.26C$', '盈利百分率 $= #frac{1.26C - C}{C} #times 100% = 26%$']
+        },
+        { // 先估算
+          q: '例：把 $40 000$ 元存入銀行，年利率 $5%$，每年複利計算。$2$ 年後的利息是　A. $4 000$ 元　B. $4 100$ 元　C. $44 100$ 元　D. $4 153$ 元',
+          wrong: ['$40 000 #times 1.05^2 = 44 100$', '選 C'],
+          why: '$44 100$ 元是本利和，題目問的是利息。先估算：單利息是 $4 000$ 元，複利息應該略多於它。',
+          right: ['估算：單利息 $= 40 000 #times 5% #times 2 = 4 000$ 元（A 是單利息）', '利息 $= 40 000 #times 1.05^2 - 40 000 = 4 100$ 元', '答案：B（D 是誤用每半年計息的結果）']
+        }
+      ]
+    },
+    /* F3 比、率與比例尺 */
+    f3: {
+      notes: [
+        { // 連比
+          q: '例：$a : b = 6 : 7$，$b : c = 2 : 3$。求 $a : c$。',
+          wrong: ['直接拿兩個比的頭尾：$a : c = 6 : 3 = 2 : 1$'],
+          why: '兩個比中的 $b$ 分別是 $7$ 和 $2$，代表的大小不同，不能直接拿頭尾。要先把 $b$ 化成相同的數。',
+          right: ['$b$ 的公倍數是 $14$', '$a : b = 12 : 14$，$b : c = 14 : 21$', '$a : b : c = 12 : 14 : 21$', '$a : c = 12 : 21 = 4 : 7$']
+        },
+        { // 面積要乘 n²
+          q: '例：地圖的比例尺是 $1 : 5000$。一塊地在地圖上的面積是 $8$ cm²，求它的實際面積（以 m² 為單位）。',
+          fig: coordFig({ x: [-0.5, 5.5], y: [-0.9, 3.5], k: 40, grid: false, axes: false, alt: '邊長 1 的正方形和邊長 3 的正方形：長度放大 3 倍，面積放大 9 倍',
+            polys: [{ pts: [[0, 0], [1, 0], [1, 1], [0, 1]] }],
+            raws: [[[0, 0], [1, 0], 'gd'], [[1, 0], [1, 1], 'gd'], [[1, 1], [0, 1], 'gd'], [[0, 1], [0, 0], 'gd'],
+              [[2, 0], [5, 0], 's'], [[5, 0], [5, 3], 's'], [[5, 3], [2, 3], 's'], [[2, 3], [2, 0], 's'],
+              [[3, 0], [3, 3], 'd'], [[4, 0], [4, 3], 'd'], [[2, 1], [5, 1], 'd'], [[2, 2], [5, 2], 'd']],
+            text: [[0.5, -0.6, '1', 'gold'], [3.5, -0.6, '3']] }),
+          leg: [['gd', '邊長 $1$：面積 $1$'], ['s', '邊長放大 $3$ 倍：面積放大 $3^2 = 9$ 倍']],
+          wrong: ['實際面積 $= 8 #times 5000 = 40 000$ cm²', '$= 4$ m²'],
+          why: '比例尺是長度的比。長度放大 $5000$ 倍，面積放大 $5000^2$ 倍（看圖：邊長放大 $3$ 倍，面積就放大 $9$ 倍）。',
+          right: ['面積比 $= 1 : 5000^2$', '實際面積 $= 8 #times 5000^2 = 2 #times 10^8$ cm²', '$1$ m² $= 100^2 = 10^4$ cm²', '實際面積 $= #frac{2 #times 10^8}{10^4} = 20 000$ m²']
+        },
+        { // 定義未知數
+          q: '例：甲的徽章數目是乙的 $3$ 倍。甲給乙 $12$ 個後，兩人的數目相同。求乙原有多少個徽章。',
+          wrong: ['$3x - 12 = x + 12$', '$x = 12$', '答：甲有 $12$ 個（沒有說明 $x$ 是誰的數目，結果答錯了人）'],
+          why: '沒有寫清楚 $x$ 代表甚麼，解完後就容易弄錯答案是誰的數目。第一句要寫「設乙原有 $x$ 個徽章」。',
+          right: ['設乙原有 $x$ 個徽章，則甲原有 $3x$ 個', '$3x - 12 = x + 12$', '$2x = 24$，$x = 12$', '乙原有 $12$ 個徽章', '檢查：甲 $36 - 12 = 24$，乙 $12 + 12 = 24$ ✓']
+        }
+      ],
+      tips: [
+        { // 連比再約簡
+          q: '例：若 $4p = 6q = 9r$，求 $p : q : r$。',
+          wrong: ['$p : q : r = 4 : 6 : 9$'],
+          why: '係數越大，那個數反而越小（例如 $9r$ 和 $4p$ 相等，$r$ 一定比 $p$ 小），所以不能照抄係數。可設三者都等於係數的公倍數。',
+          right: ['設 $4p = 6q = 9r = 36$（$4$、$6$、$9$ 的最小公倍數）', '$p = 9$，$q = 6$，$r = 4$', '$p : q : r = 9 : 6 : 4$', '檢查：$4(9) = 6(6) = 9(4) = 36$ ✓']
+        },
+        { // 先化 cm，再轉單位
+          q: '例：地圖的比例尺是 $1 : 20 000$。兩地在地圖上相距 $3.5$ cm，實際相距多少 km？',
+          wrong: ['$3.5 #times 20 000 = 70 000$', '$70 000 #div 1000 = 70$ km'],
+          why: '$70 000$ 的單位是 cm，不是 m。cm 化 km 要先除以 $100$（化成 m），再除以 $1000$（化成 km）。',
+          right: ['實際距離 $= 3.5 #times 20 000 = 70 000$ cm', '$= 700$ m', '$= 0.7$ km']
+        }
+      ]
+    },
+    /* F4 平面幾何與證明 */
+    f4: {
+      notes: [
+        { // 畢氏定理的逆定理
+          q: '例：$#triangle ABC$ 中，$AB = 5$，$BC = 12$，$AC = 13$。證明 $#angle ABC = 90#deg$。',
+          fig: coordFig({ x: [-1, 13], y: [-1.2, 6.2], k: 24, grid: false, axes: false, alt: '三角形 ABC，AB = 5，BC = 12，AC = 13',
+            pts: { A: [0, 5], B: [0, 0], C: [12, 0] }, segs: [['A', 'B', 's'], ['B', 'C', 's'], ['A', 'C', 's']],
+            arcs: [['A', 'B', 'C', '?', 'gd']],
+            labels: [['5', [0, 2.5]], ['12', [6, 0], '', [0, 14]], ['13', [6, 2.5]]] }),
+          wrong: ['$AC^2 = AB^2 + BC^2$（畢氏定理）', '所以 $#angle ABC = 90#deg$'],
+          why: '畢氏定理是「已知直角，推出邊的關係」；這裏是反過來「由邊的關係，推出直角」，要用畢氏定理的逆定理。而且不能一開始就寫等式，要先分別計算兩邊。',
+          right: ['$AB^2 + BC^2 = 25 + 144 = 169$', '$AC^2 = 13^2 = 169$', '所以 $AB^2 + BC^2 = AC^2$', '$#angle ABC = 90#deg$（畢氏定理的逆定理）']
+        },
+        { // 寫完整理由
+          q: '例：圖中 $AB #parallel CD$，$#angle APQ = 65#deg$。求 $#angle PQD$，並寫出理由。',
+          fig: coordFig({ x: [-1, 6.2], y: [-1.6, 4.6], k: 40, grid: false, axes: false, alt: '平行線 AB 和 CD，被直線 PQ 所截；角 APQ 和角 PQD 是內錯角',
+            pts: { A: [0, 3], B: [5, 3], C: [0, 0], D: [5, 0], P: [3, 3], Q: [3 - 3 / Math.tan(65 * Math.PI / 180), 0] },
+            raws: [[[-0.8, 3], [5.8, 3], 's'], [[-0.8, 0], [5.8, 0], 's'], [[3.59, 4.27], [1.01, -1.27], 's']],
+            arcs: [['A', 'P', 'Q', '65°'], ['P', 'Q', 'D', '?', 'gd']] }),
+          leg: [['s', '$AB #parallel CD$']],
+          wrong: ['$#angle PQD = #angle APQ = 65#deg$', '（沒有寫理由，或只寫「內錯角」）'],
+          why: '內錯角相等的前提是兩線平行，所以理由要寫完整：「內錯角，$AB #parallel CD$」。只有答案沒有理由，證明題會失分。',
+          right: ['$#angle PQD = #angle APQ$（內錯角，$AB #parallel CD$）', '$#angle PQD = 65#deg$']
+        },
+        { // 不要無根據地假設
+          q: '例：$#triangle ABC$ 中，$D$ 在 $BC$ 上，$AD #perp BC$。$AB = 10$，$AD = 6$，$BC = 15$。求 $AC$。',
+          fig: coordFig({ x: [-1, 16], y: [-1.2, 7.2], k: 22, grid: false, axes: false, alt: 'AD 垂直於 BC；BD = 8，DC = 7，D 不是 BC 的中點',
+            pts: { A: [8, 6], B: [0, 0], C: [15, 0], D: [8, 0] }, segs: [['A', 'B', 's'], ['A', 'C', 's'], ['B', 'C', 's'], ['A', 'D', 'd']], right: [['A', 'D', 'C']],
+            labels: [['10', [4, 3]], ['6', [8, 3.4]], ['8', [4, 0], 'gold', [0, 14]], ['7', [11.5, 0], 'gold', [0, 14]]] }),
+          leg: [['d', '$AD #perp BC$，但 $D$ 不一定是中點']],
+          wrong: ['$AD #perp BC$，所以 $D$ 是 $BC$ 的中點', '$DC = 7.5$，$AC = #sqrt{36 + 56.25} #approx 9.60$'],
+          why: '垂足是中點，只在 $AB = AC$（等腰三角形）時才成立。題目沒有這個條件，不能假設。要先用畢氏定理求 $BD$。',
+          right: ['$BD = #sqrt{10^2 - 6^2} = 8$（畢氏定理）', '$DC = 15 - 8 = 7$', '$AC = #sqrt{6^2 + 7^2} = #sqrt{85} #approx 9.22$']
+        },
+        { // 弓形 vs 扇形
+          q: '例：圓的半徑是 $6$，弦 $AB$ 對圓心 $O$ 的角是 $60#deg$。求劣弓形（弦 $AB$ 與劣弧之間）的面積。',
+          fig: coordFig({ x: [-7, 7], y: [-7, 7.4], k: 20, grid: false, axes: false, alt: '圓心 O，弦 AB 對圓心 60 度；陰影是弓形，等於扇形減去三角形 OAB',
+            polys: [{ pts: Array.from({ length: 13 }, (_, i) => pol(6, 60 + i * 5)) }],
+            pts: { O: [0, 0], A: pol(6, 60), B: pol(6, 120) },
+            circles: [{ c: [0, 0], r: 6, cls: 's' }], segs: [['O', 'A', 'd'], ['O', 'B', 'd'], ['A', 'B', 'gd']],
+            arcs: [['A', 'O', 'B', '60°']] }),
+          leg: [['fill', '劣弓形 $=$ 扇形 $OAB$ $-$ $#triangle OAB$'], ['d', '半徑 $OA = OB = 6$']],
+          wrong: ['面積 $= #frac{60}{360} #times #pi(6)^2 = 6#pi #approx 18.8$'],
+          why: '$6#pi$ 是扇形 $OAB$ 的面積，包括了三角形 $OAB$。弓形只是弦和弧之間的部分，要減去三角形。',
+          right: ['扇形 $= #frac{60}{360} #times #pi(6)^2 = 6#pi$', '$#triangle OAB$ 是等邊三角形，面積 $= #frac{1}{2}(6)(6)#sin 60#deg = 9#sqrt{3}$', '弓形 $= 6#pi - 9#sqrt{3} #approx 3.26$']
+        }
+      ],
+      tips: [
+        { // 相似要平方
+          q: '例：$#triangle ABC$ 中，$D$、$E$ 分別在 $AB$、$AC$ 上，$DE #parallel BC$，$AD : DB = 2 : 1$。若 $#triangle ADE$ 的面積是 $8$，求 $#triangle ABC$ 的面積。',
+          fig: coordFig({ x: [-0.8, 6.8], y: [-0.8, 6.8], k: 40, grid: false, axes: false, alt: 'DE 平行於 BC；三角形 ADE 與三角形 ABC 相似，邊長比 2 : 3',
+            polys: [{ pts: [[3, 6], [1, 2], [5, 2]] }],
+            pts: { A: [3, 6], B: [0, 0], C: [6, 0], D: [1, 2], E: [5, 2] }, segs: [['A', 'B', 's'], ['A', 'C', 's'], ['B', 'C', 's'], ['D', 'E', 'gd']],
+            text: [[3, 3.3, '8', 'gold']] }),
+          leg: [['fill', '$#triangle ADE #sim #triangle ABC$，邊長比 $AD : AB = 2 : 3$']],
+          wrong: ['$AD : AB = 2 : 3$', '面積 $= 8 #times #frac{3}{2} = 12$'],
+          why: '兩個三角形相似，面積比是邊長比的平方。注意邊長比是 $AD : AB = 2 : 3$（$AB = AD + DB$），不是 $2 : 1$。',
+          right: ['$AD : AB = 2 : (2 + 1) = 2 : 3$', '$#triangle ADE #sim #triangle ABC$（$DE #parallel BC$）', '面積比 $= 2^2 : 3^2 = 4 : 9$', '$#triangle ABC$ 的面積 $= 8 #times #frac{9}{4} = 18$']
+        },
+        { // 不按比例
+          q: '例：$#triangle ABC$ 中，$AB = 7$，$BC = 8$，$AC = 11$。$#angle ABC$ 看來是直角，可否用 $#frac{1}{2} #times 7 #times 8$ 求面積？',
+          fig: coordFig({ x: [-1.6, 9], y: [-1, 8], k: 30, grid: false, axes: false, alt: '三角形 ABC，角 B 看似直角，實際約 94 度',
+            pts: { A: pol(7, 94.096), B: [0, 0], C: [8, 0] }, segs: [['A', 'B', 's'], ['B', 'C', 's'], ['A', 'C', 's']],
+            arcs: [['C', 'B', 'A', '≈ 94°', 'gd']],
+            labels: [['7', [-0.25, 3.5]], ['8', [4, 0], '', [0, 14]], ['11', [3.75, 3.5]]] }),
+          leg: [['s', '看起來像直角，實際約 $94#deg$']],
+          wrong: ['「從圖看 $#angle ABC = 90#deg$」', '面積 $= #frac{1}{2} #times 7 #times 8 = 28$'],
+          why: '圖不一定按比例繪畫。要用邊長檢查：若是直角，$7^2 + 8^2$ 應等於 $11^2$。',
+          right: ['$7^2 + 8^2 = 113$，$11^2 = 121$，$113 #ne 121$', '所以 $#angle ABC$ 不是直角，不能用 $#frac{1}{2} #times 7 #times 8$', '（用餘弦公式：$#cos B = #frac{49 + 64 - 121}{2(7)(8)} = -#frac{1}{14}$，$B #approx 94.1#deg$，面積 $= #frac{1}{2}(7)(8)#sin B #approx 27.9$）']
+        }
+      ]
+    },
+    /* F5 求積法 */
+    f5: {
+      notes: [
+        { // 角錐 vs 角柱
+          q: '例：正方形底角錐的底邊長 $6$ cm，高 $10$ cm。求它的體積。',
+          fig: coordFig({ x: [-0.8, 10], y: [-0.8, 11.8], k: 24, grid: false, axes: false, alt: '正方形底角錐，底邊 6，高 10',
+            pts: { A: pj(0, 0, 0), B: pj(6, 0, 0), C: pj(6, 6, 0), D: pj(0, 6, 0), V: pj(3, 3, 10), O: pj(3, 3, 0) },
+            segs: [['A', 'B', 's'], ['B', 'C', 's'], ['C', 'D', 'd'], ['D', 'A', 'd'], ['V', 'A', 's'], ['V', 'B', 's'], ['V', 'C', 's'], ['V', 'D', 'd'], ['V', 'O', 'gd']],
+            right: [['V', 'O', 'B']] }),
+          leg: [['gd', '高 $VO = 10$ cm']],
+          wrong: ['體積 $= 6 #times 6 #times 10 = 360$ cm³（用了角柱的公式）'],
+          why: '角錐的體積是同底同高角柱的 $#frac{1}{3}$。公式：角錐 $#frac{1}{3} #times$ 底面積 $#times$ 高；角柱 底面積 $#times$ 高。',
+          right: ['底面積 $= 6 #times 6 = 36$ cm²', '體積 $= #frac{1}{3} #times 36 #times 10 = 120$ cm³']
+        },
+        { // 平截頭體總表面面積
+          q: '例：平截頭體的底半徑 $6$ cm，頂半徑 $3$ cm，斜高 $5$ cm。求它的總表面面積（以 $#pi$ 表示）。',
+          fig: coordFig({ x: [-7, 7], y: [-2, 5.4], k: 24, grid: false, axes: false, alt: '平截頭體：曲面加上頂和底兩個圓',
+            curves: [
+              { f: ell(0, 0, 6, 1.4, -1), from: -6, to: 6, cls: 'gd' }, { f: ell(0, 0, 6, 1.4, 1), from: -6, to: 6, cls: 'd' },
+              { f: ell(0, 4, 3, 0.7, -1), from: -3, to: 3, cls: 'gd' }, { f: ell(0, 4, 3, 0.7, 1), from: -3, to: 3, cls: 'gd' }
+            ],
+            raws: [[[-6, 0], [-3, 4], 's'], [[6, 0], [3, 4], 's']],
+            labels: [['5', [4.5, 2]], ['r = 3', [0, 4], '', [0, -18]], ['R = 6', [0, -1.4], '', [0, 14]]] }),
+          leg: [['gd', '頂和底兩個圓，都要計入總表面面積']],
+          wrong: ['曲面面積 $= #pi(6 + 3)(5) = 45#pi$', '總表面面積 $= 45#pi$ cm²'],
+          why: '「總表面面積」包括所有表面：曲面、頂的圓和底的圓。只計算了曲面。',
+          right: ['曲面面積 $= #pi(R + r)l = #pi(6 + 3)(5) = 45#pi$', '頂 $= #pi(3)^2 = 9#pi$，底 $= #pi(6)^2 = 36#pi$', '總表面面積 $= 45#pi + 9#pi + 36#pi = 90#pi$ cm²', '（另一方法：大圓錐斜高 $10$，$#pi(6)(10) - #pi(3)(5) = 45#pi$）']
+        },
+        { // 判斷相似
+          q: '例：圓柱甲的半徑 $3$ cm、高 $5$ cm；圓柱乙的半徑 $6$ cm、高 $8$ cm。兩個圓柱相似嗎？',
+          wrong: ['半徑比 $= 3 : 6 = 1 : 2$', '所以兩者相似，體積比 $= 1 : 8$'],
+          why: '只比較了半徑。相似立體的所有對應長度都要成同一比例，高也要比較。',
+          right: ['半徑比：$#frac{6}{3} = 2$', '高之比：$#frac{8}{5} = 1.6$', '$2 #ne 1.6$，所以兩個圓柱不相似', '（體積要逐個計算：甲 $45#pi$，乙 $288#pi$）']
+        },
+        { // 自己畫草圖
+          q: '例：圓錐的底半徑是 $5$ cm，斜高是 $13$ cm。求它的體積（以 $#pi$ 表示）。（題目不附圖）',
+          fig: coordFig({ x: [-6.5, 7], y: [-2, 13], k: 20, grid: false, axes: false, alt: '圓錐草圖：高、半徑和斜高組成直角三角形',
+            curves: [{ f: ell(0, 0, 5, 1.2, -1), from: -5, to: 5, cls: 's' }, { f: ell(0, 0, 5, 1.2, 1), from: -5, to: 5, cls: 'd' }],
+            pts: { V: [0, 12], O: [0, 0], B: [5, 0] },
+            raws: [[[-5, 0], [0, 12], 's']], segs: [['V', 'B', 'gd'], ['V', 'O', 'gd'], ['O', 'B', 'gd']], right: [['V', 'O', 'B']],
+            labels: [['13', [2.5, 6]], ['h', [0, 6], 'gold', [-14, 0]], ['5', [2.5, 0], '', [0, 14]]] }),
+          leg: [['gd', '直角三角形：$h^2 + 5^2 = 13^2$']],
+          wrong: ['體積 $= #frac{1}{3}#pi(5)^2(13) = #frac{325#pi}{3}$ cm³（把斜高當作高）'],
+          why: '公式中的 $h$ 是垂直高度，不是斜高。畫了草圖，就看到高、半徑、斜高組成直角三角形，要先求高。',
+          right: ['$h = #sqrt{13^2 - 5^2} = 12$ cm', '體積 $= #frac{1}{3}#pi(5)^2(12) = 100#pi$ cm³']
+        }
+      ],
+      tips: [
+        { // 面積 = ½ r × 弧長
+          q: '例：扇形的半徑是 $8$ cm，弧長是 $10$ cm。求它的面積。',
+          fig: coordFig({ x: [-0.8, 9], y: [-1, 8.8], k: 30, grid: false, axes: false, alt: '扇形，半徑 8，弧長 10',
+            polys: [{ pts: [[0, 0], ...Array.from({ length: 21 }, (_, i) => pol(8, i * 71.62 / 20))] }],
+            pts: { O: [0, 0], A: [8, 0], B: pol(8, 71.62) },
+            segs: [['O', 'A', 's'], ['O', 'B', 's']],
+            curves: [{ f: x => Math.sqrt(64 - x * x), from: 8 * Math.cos(71.62 * Math.PI / 180), to: 8, cls: 'gd' }],
+            labels: [['8', [4, 0], '', [0, 14]], ['弧長 10', [6.6, 4.5], 'gold', [40, 0]]] }),
+          leg: [['gd', '弧長 $= 10$ cm']],
+          wrong: ['圓心角 $= #frac{10}{2#pi(8)} #times 360#deg #approx 72#deg$（捨入了）', '面積 $= #frac{72}{360} #times #pi(8)^2 #approx 40.2$ cm²'],
+          why: '先求圓心角多了一步，而且角度捨入後，面積也不準確。扇形面積可以直接用半徑和弧長計算。',
+          right: ['面積 $= #frac{1}{2} #times r #times$ 弧長', '$= #frac{1}{2} #times 8 #times 10$', '$= 40$ cm²']
+        },
+        { // 相似立體：長度比 → 平方 / 立方
+          q: '例：兩個相似立體的總表面面積之比是 $9 : 25$。較小的立體體積是 $54$ cm³，求較大立體的體積。',
+          wrong: ['體積比 $= 9 : 25$', '較大體積 $= 54 #times #frac{25}{9} = 150$ cm³'],
+          why: '面積比不是體積比。先由面積比開方得長度比，再立方得體積比。',
+          right: ['長度比 $= #sqrt{9} : #sqrt{25} = 3 : 5$', '體積比 $= 3^3 : 5^3 = 27 : 125$', '較大體積 $= 54 #times #frac{125}{27} = 250$ cm³']
+        }
+      ]
+    },
+    /* F6 統計與概率基礎 */
+    f6: {
+      notes: [
+        { // 統計名詞
+          q: '例：求數據 $7$，$3$，$10$，$3$，$5$，$2$ 的中位數和分佈域。',
+          wrong: ['中位數：中間兩個數是 $10$ 和 $3$，$#frac{10 + 3}{2} = 6.5$（沒有先排序）', '分佈域：「$2$ 至 $10$」'],
+          why: '求中位數之前要先把數據由小到大排列。分佈域是一個數值：最大值 $-$ 最小值，不是一個範圍。',
+          right: ['排序：$2$，$3$，$3$，$5$，$7$，$10$', '中位數 $= #frac{3 + 5}{2} = 4$', '分佈域 $= 10 - 2 = 8$']
+        },
+        { // 眾數可以是 x
+          q: '例：數據 $2$，$4$，$x$，$x$，$9$ 的平均數是 $5$。求眾數。',
+          wrong: ['已知的數 $2$、$4$、$9$ 各出現一次', '所以沒有眾數'],
+          why: '$x$ 出現了兩次！要先求 $x$，眾數可能就是 $x$。',
+          right: ['$#frac{2 + 4 + 2x + 9}{5} = 5$', '$15 + 2x = 25$，$x = 5$', '數據：$2$，$4$，$5$，$5$，$9$', '眾數 $= 5$']
+        },
+        { // 不少於 vs 多於
+          q: '例：擲一顆骰子一次。求得到的點數不少於 $4$ 的概率。',
+          wrong: ['不少於 $4$：$5$、$6$', '$P = #frac{2}{6} = #frac{1}{3}$'],
+          why: '「不少於 $4$」即 $#ge 4$，包括 $4$ 本身。「多於 $4$」才不包括 $4$。',
+          right: ['不少於 $4$：$4$、$5$、$6$，共 $3$ 個結果', '$P = #frac{3}{6} = #frac{1}{2}$']
+        },
+        { // 數據 vs 頻數
+          q: '例：在 $20$ 名學生中，兄弟姊妹數目是 $0$、$1$、$2$、$3$ 的人數分別是 $5$、$8$、$4$、$3$。求兄弟姊妹數目的平均數和眾數。',
+          wrong: ['平均數 $= #frac{5 + 8 + 4 + 3}{4} = 5$', '眾數 $= 8$'],
+          why: '把「人數」（頻數）當作數據了。數據是兄弟姊妹數目 $0$ 至 $3$，平均數不可能是 $5$。眾數是出現最多次的「數據」，即人數最多的那一個數目。',
+          right: ['總數 $= 0(5) + 1(8) + 2(4) + 3(3) = 25$', '平均數 $= #frac{25}{20} = 1.25$', '人數最多的是 $8$ 人，對應的數據是 $1$', '眾數 $= 1$']
+        },
+        { // 前後數值比較
+          q: '例：數據 $4$，$6$，$8$，$10$ 加入一個數 $2$。平均數有沒有改變？試解釋。',
+          wrong: ['「有改變。」'],
+          why: '只寫結論沒有數值，不能取得結論分。要列出前後兩個平均數，比較後再下結論。',
+          right: ['原平均數 $= #frac{28}{4} = 7$', '新平均數 $= #frac{30}{5} = 6$', '$6 < 7$，所以平均數減少了 $1$（改變 $= -1$）。']
+        }
+      ],
+      tips: [
+        { // 先查最容易的一句
+          q: '例：數據 $1$，$4$，$4$，$x$，$10$ 的平均數是 $5$。以下哪些正確？　I. 分佈域是 $9$　II. 中位數是 $4$　III. 眾數大於平均數',
+          wrong: ['中位數是排在中間的數 $x$', '所以 II 錯'],
+          why: '沒有先求 $x$ 和排序。應先求 $x$，再由最容易驗證的句子開始，逐句排除。',
+          right: ['$1 + 4 + 4 + x + 10 = 25$，$x = 6$；排序：$1$，$4$，$4$，$6$，$10$', 'I：$10 - 1 = 9$ ✓', 'III：眾數 $4 <$ 平均數 $5$ ✗（排除有 III 的選項）', 'II：中位數 $= 4$ ✓', '答案：只有 I 和 II']
+        },
+        { // 同時抽出 = 不放回
+          q: '例：盒中有 $2$ 個紅球和 $1$ 個藍球。同時隨機抽出兩個球，求兩個都是紅球的概率。',
+          wrong: ['$P = #frac{2}{3} #times #frac{2}{3} = #frac{4}{9}$'],
+          why: '「同時抽出」等於逐一抽出而不放回：第二個球只會從餘下的 $2$ 個球中抽出。$#frac{2}{3} #times #frac{2}{3}$ 是放回的情況。',
+          right: ['第一個紅：$#frac{2}{3}$；第二個紅（餘下 $1$ 紅 $1$ 藍）：$#frac{1}{2}$', '$P = #frac{2}{3} #times #frac{1}{2} = #frac{1}{3}$', '（列出所有結果：紅₁紅₂、紅₁藍、紅₂藍，$3$ 個中有 $1$ 個 ✓）']
         }
       ]
     }
