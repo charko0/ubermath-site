@@ -447,7 +447,7 @@ canvas.stage:active { cursor: grabbing; }
 .exeg summary { cursor: pointer; font-weight: 600; font-size: .95rem; color: var(--gold); padding: 6px 12px; min-height: 36px; display: flex; align-items: center; letter-spacing: 0; }
 .exeg[open] summary { border-bottom: 1px solid var(--line); }
 .exeg .ex-q { padding: 10px 12px 4px; font-weight: 600; }
-.exeg .ex-fig { padding: 4px 12px; }
+.exeg .ex-fig { padding: 4px 12px; --halo: var(--paper); }
 .exeg .ex-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 12px 12px; }
 .exeg .ex-wrong, .exeg .ex-right { padding: 10px 12px; display: grid; gap: 4px; align-content: start; }
 .exeg .ex-wrong { border: 1.5px solid var(--red); background: var(--red-soft); }
@@ -468,7 +468,8 @@ canvas.stage:active { cursor: grabbing; }
 .exeg .ex-leg .wr { stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 4; }
 .qfig .wpt { fill: var(--red); }
 .qfig .wr { fill: none; stroke: var(--red); stroke-width: 2; stroke-dasharray: 6 4; }
-.qfig text.wr, .qfig text.gd, .qfig text.gold { stroke: none; font-weight: 600; }
+.qfig text.wr, .qfig text.gd, .qfig text.gold { font-weight: 600; }
+.qfig text.wr, .qfig text.gd, .qfig text.gold, .qfig text.s, .qfig text.d { stroke: var(--halo); stroke-width: 4px; stroke-dasharray: none; }
 .qfig text.wr { fill: var(--red); }
 .qfig text.gd, .qfig text.gold { fill: var(--gold); }
 @media (max-width: 640px) { .exeg .ex-cols { grid-template-columns: 1fr; } }
@@ -510,7 +511,8 @@ canvas.stage:active { cursor: grabbing; }
 .qfig .d { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 5 4; }
 .qfig .gd { fill: none; stroke: var(--gold); stroke-width: 2.4; }
 .qfig .pt { fill: var(--ink); }
-.qfig text { font-family: var(--f-math); font-style: italic; font-size: 15px; fill: var(--ink); }
+.qfig { --halo: var(--sheet); }
+.qfig text { font-family: var(--f-math); font-style: italic; font-size: 15px; fill: var(--ink); paint-order: stroke; stroke: var(--halo); stroke-width: 4px; stroke-linejoin: round; }
 .qfig text.n { font-style: normal; font-size: 13px; fill: var(--ink-2); }
 .m sub { font-size: .68em; line-height: 0; vertical-align: -.25em; }
 .ov { text-decoration: overline; }
@@ -8733,10 +8735,13 @@ function coordFig(o) {
   const [x0, x1] = o.x, [y0, y1] = o.y, k = o.k || 24, pad = 18;
   const X = x => ((x - x0) * k + pad).toFixed(1), Y = y => ((y1 - y) * k + pad).toFixed(1);
   const W = (x1 - x0) * k + 2 * pad, H = (y1 - y0) * k + 2 * pad;
+  const drawn = [];
   let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" width="${Math.min(420, W).toFixed(0)}" role="img" aria-label="${esc(o.alt || '坐標圖')}">`;
   // light grid + axes
   for (let x = Math.ceil(x0); x <= x1; x++) s += `<line class="gr" x1="${X(x)}" y1="${Y(y0)}" x2="${X(x)}" y2="${Y(y1)}"/>`;
   for (let y = Math.ceil(y0); y <= y1; y++) s += `<line class="gr" x1="${X(x0)}" y1="${Y(y)}" x2="${X(x1)}" y2="${Y(y)}"/>`;
+  if (y0 <= 0 && y1 >= 0) drawn.push([[+X(x0), +Y(0)], [+X(x1), +Y(0)]]);
+  if (x0 <= 0 && x1 >= 0) drawn.push([[+X(0), +Y(y0)], [+X(0), +Y(y1)]]);
   if (y0 <= 0 && y1 >= 0) s += `<line class="ax" x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}"/><text x="${(+X(x1) + 2).toFixed(1)}" y="${(+Y(0) - 6).toFixed(1)}" text-anchor="end">x</text>`;
   if (x0 <= 0 && x1 >= 0) s += `<line class="ax" x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}"/><text x="${(+X(0) + 8).toFixed(1)}" y="${(+Y(y1) + 4).toFixed(1)}">y</text>`;
   (o.circles || []).forEach(c => s += `<circle class="${c.cls || 's'}" cx="${X(c.c[0])}" cy="${Y(c.c[1])}" r="${(c.r * k).toFixed(1)}"/>`);
@@ -8746,22 +8751,50 @@ function coordFig(o) {
     if (Math.abs(dy) > 1e-9) [y0, y1].forEach(yb => { const t = (yb - ay) / dy, x = ax + t * dx; if (x >= x0 - 1e-9 && x <= x1 + 1e-9) ts.push(t); });
     if (ts.length < 2) return;
     const t1 = Math.min(...ts), t2 = Math.max(...ts);
+    drawn.push([[+X(ax + t1 * dx), +Y(ay + t1 * dy)], [+X(ax + t2 * dx), +Y(ay + t2 * dy)]]);
     s += `<line class="${l.cls || 's'}" x1="${X(ax + t1 * dx)}" y1="${Y(ay + t1 * dy)}" x2="${X(ax + t2 * dx)}" y2="${Y(ay + t2 * dy)}"/>`;
     if (l.t) s += `<text class="n ${l.cls === 's' ? '' : (l.cls || '')}" x="${X(l.at[0])}" y="${Y(l.at[1])}" text-anchor="middle">${l.t}</text>`;
   });
-  (o.segs || []).forEach(([p, q, cls]) => { const a = o.pts[p], b = o.pts[q]; s += `<line class="${cls || 's'}" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`; });
+  (o.raws || []).forEach(([a, b, cls]) => { drawn.push([[+X(a[0]), +Y(a[1])], [+X(b[0]), +Y(b[1])]]); s += `<line class="${cls || 's'}" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`; });
+  (o.segs || []).forEach(([p, q, cls]) => { const a = o.pts[p], b = o.pts[q]; drawn.push([[+X(a[0]), +Y(a[1])], [+X(b[0]), +Y(b[1])]]); s += `<line class="${cls || 's'}" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`; });
   (o.right || []).forEach(([p, v, q]) => {
     const V = o.pts[v], u = A => { const dx = (A[0] - V[0]), dy = (A[1] - V[1]), l = Math.hypot(dx, dy); return [dx / l * 9, -dy / l * 9]; };
     const a = u(o.pts[p]), b = u(o.pts[q]), vx = +X(V[0]), vy = +Y(V[1]);
     s += `<path class="s" style="stroke-width:1.1" d="M${vx + a[0]} ${vy + a[1]} L${vx + a[0] + b[0]} ${vy + a[1] + b[1]} L${vx + b[0]} ${vy + b[1]}"/>`;
   });
+  // ---- label placement: every letter avoids lines, circles, points and other letters ----
+  const obs = [], boxes = [], P2 = p => [+X(p[0]), +Y(p[1])];
+  const addSeg = (a, b) => { const n = Math.max(2, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3)); for (let i = 0; i <= n; i++) obs.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); };
+  drawn.forEach(([a, b]) => addSeg(a, b));
+  (o.circles || []).forEach(c => { const [cx, cy] = P2(c.c), r = c.r * k, n = Math.ceil(2 * Math.PI * r / 3); for (let i = 0; i < n; i++) obs.push([cx + r * Math.cos(2 * Math.PI * i / n), cy + r * Math.sin(2 * Math.PI * i / n)]); });
+  const allPts = Object.assign({}, o.pts || {}, o.bad || {});
+  Object.values(allPts).forEach(p => { const [x, y] = P2(p); for (let a = 0; a < 8; a++) obs.push([x + 4 * Math.cos(a * Math.PI / 4), y + 4 * Math.sin(a * Math.PI / 4)]); obs.push([x, y]); });
+  const textW = t => [...String(t)].reduce((w, ch) => w + (/[　-鿿＀-￯]/.test(ch) ? 14 : /[A-Za-z]/.test(ch) ? 9.5 : 7.5), 0);
+  const place = (n, p, hint) => {
+    const [x, y] = P2(p), w = textW(n) + 4, h = 17, cands = [];
+    if (hint) cands.push(hint);
+    for (const r of [15, 20, 26]) for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; cands.push([r * Math.cos(t) * (1 + w / 40), r * Math.sin(t)]); }
+    let best = null, bestScore = Infinity;
+    cands.forEach(([dx, dy], i) => {
+      const cx = x + dx, cy = y + dy, L = cx - w / 2, R = cx + w / 2, T = cy - h / 2, B = cy + h / 2;
+      let sc = 0;
+      obs.forEach(([ox, oy]) => { if (ox > L - 2 && ox < R + 2 && oy > T - 2 && oy < B + 2) sc += 10; });
+      boxes.forEach(b => { if (L < b[2] + 3 && R > b[0] - 3 && T < b[3] + 3 && B > b[1] - 3) sc += 60; });
+      if (L < 0 || R > W || T < 0 || B > H) sc += 40;
+      sc += Math.hypot(dx, dy) / 8 + (hint && i === 0 ? -1 : 0);
+      if (sc < bestScore) { bestScore = sc; best = [cx, cy, L, T, R, B]; }
+    });
+    boxes.push([best[2], best[3], best[4], best[5]]);
+    return best;
+  };
+  Object.values(allPts).forEach(p => { const [x, y] = P2(p); boxes.push([x - 3, y - 3, x + 3, y + 3]); });
   Object.entries(o.pts || {}).forEach(([n, p]) => {
-    const off = (o.lab || {})[n] || [10, -10];
-    s += `<circle class="pt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3"/><text x="${(+X(p[0]) + off[0]).toFixed(1)}" y="${(+Y(p[1]) + off[1]).toFixed(1)}" text-anchor="middle">${n}</text>`;
+    const [lx, ly] = place(n, p, (o.lab || {})[n]);
+    s += `<circle class="pt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3"/><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${n}</text>`;
   });
   Object.entries(o.bad || {}).forEach(([n, p]) => {
-    const off = (o.lab || {})[n] || [10, -10];
-    s += `<circle class="wpt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.4"/><text class="wr" x="${(+X(p[0]) + off[0]).toFixed(1)}" y="${(+Y(p[1]) + off[1]).toFixed(1)}" text-anchor="middle">${n}</text>`;
+    const [lx, ly] = place(n, p, (o.lab || {})[n]);
+    s += `<circle class="wpt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.4"/><text class="wr" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${n}</text>`;
   });
   (o.text || []).forEach(([x, y, t, cls]) => s += `<text class="n ${cls || ''}" x="${X(x)}" y="${Y(y)}" text-anchor="middle">${t}</text>`);
   return s + '</svg>';
@@ -8775,7 +8808,7 @@ function coordFig(o) {
         { // 圓心錯放 / 用錯垂直平分線
           q: '例：圓經過 $A(0, 4)$ 和 $B(4, 0)$，圓心在直線 $y = 2x - 3$ 上。求圓心。',
           fig: coordFig({ x: [-1, 7], y: [-1, 7], k: 36, alt: '弦 AB、正確的垂直平分線 y = x、錯誤的直線，以及圓心 C(3, 3)',
-            pts: { A: [0, 4], B: [4, 0], M: [2, 2], C: [3, 3] }, lab: { A: [-12, -4], B: [6, 16], M: [12, 14], C: [12, -8] },
+            pts: { A: [0, 4], B: [4, 0], M: [2, 2], C: [3, 3] },
             segs: [['A', 'B', 's']], right: [['B', 'M', 'C']],
             circles: [{ c: [3, 3], r: Math.sqrt(10), cls: 'd' }],
             lines: [
@@ -8791,7 +8824,7 @@ function coordFig(o) {
         { // 弦當半徑
           q: '例：圓的圓心是 $G(2, 3)$，半徑是 $5$。直線 $x = 5$ 交圓於 $M$、$N$。求 $MN$ 的長度。',
           fig: coordFig({ x: [-4, 8], y: [-3, 9], k: 28, alt: '圓心 G(2, 3)，直線 x = 5 交圓於 M(5, 7)、N(5, −1)；GM、GN 是半徑，MN 是弦',
-            pts: { G: [2, 3], M: [5, 7], N: [5, -1], H: [5, 3] }, lab: { G: [-12, -6], M: [12, -6], N: [12, 14], H: [12, -6] },
+            pts: { G: [2, 3], M: [5, 7], N: [5, -1], H: [5, 3] },
             circles: [{ c: [2, 3], r: 5, cls: 's' }],
             segs: [['G', 'M', 'd'], ['G', 'N', 'd'], ['G', 'H', 'd'], ['M', 'N', 'gd']], right: [['G', 'H', 'M']],
             lines: [{ a: [5, 0], b: [5, 1], cls: 's', t: 'x = 5', at: [6.3, 8.2] }],
@@ -8804,7 +8837,7 @@ function coordFig(o) {
         { // 用圓的性質：圓心與弦中點的連線垂直於弦
           q: '例：圓的圓心是 $G(2, 3)$。弦 $PQ$ 的中點是 $A(4, 4)$。求直線 $PQ$ 的方程。',
           fig: coordFig({ x: [-4, 8], y: [-3, 9], k: 28, alt: '圓心 G(2, 3)，弦 PQ 的中點 A(4, 4)，GA 垂直於 PQ',
-            pts: { G: [2, 3], A: [4, 4], P: [2, 8], Q: [6, 0] }, lab: { G: [-12, 4], A: [14, -4], P: [-10, -6], Q: [12, 12] },
+            pts: { G: [2, 3], A: [4, 4], P: [2, 8], Q: [6, 0] },
             circles: [{ c: [2, 3], r: 5, cls: 's' }],
             segs: [['P', 'Q', 'gd'], ['G', 'A', 'd']], right: [['G', 'A', 'Q']] }),
           leg: [['d', '$GA$：圓心到弦中點'], ['gd', '弦 $PQ$，與 $GA$ 垂直']],
@@ -8816,10 +8849,10 @@ function coordFig(o) {
       tips: [
         { // 2x² + 2y² 先除以 2
           q: '例：求圓 $2x^2 + 2y^2 - 8x + 12y - 6 = 0$ 的圓心和半徑。',
-          fig: coordFig({ x: [-3, 7], y: [-8, 2], k: 28, alt: '正確的圓：圓心 (2, −3)，半徑 4；錯誤讀出的圓心 (4, −6) 在圓外',
-            pts: { '(2, −3)': [2, -3] }, bad: { '✗ (4, −6)': [4, -6] }, lab: { '(2, −3)': [0, 18], '✗ (4, −6)': [30, 18] },
+          fig: coordFig({ x: [-3, 7], y: [-8, 2], k: 28, alt: '正確的圓：圓心 (2, −3)，半徑 4；錯誤讀出的圓心 (4, −6) 並不在圓心位置',
+            pts: { '(2, −3)': [2, -3] }, bad: { '✗ (4, −6)': [4, -6] },
             circles: [{ c: [2, -3], r: 4, cls: 'gd' }],
-            text: [[4.2, -0.6, 'r = 4', 'gold']] }),
+            raws: [[[2, -3], [6, -3], 'gd']], text: [[4, -2.55, 'r = 4', 'gold']] }),
           leg: [['gd', '正確：圓心 $(2, -3)$，半徑 $4$'], ['wr', '錯誤讀出的圓心 $(4, -6)$，根本不是這個圓的圓心']],
           wrong: ['直接讀係數：圓心 $= (-#frac{-8}{2}, -#frac{12}{2}) = (4, -6)$', '半徑 $= #sqrt{4^2 + 6^2 + 6} = #sqrt{58}$'],
           why: '讀圓心和半徑的公式只適用於 $x^2$、$y^2$ 的係數都是 $1$ 的方程。這裏係數是 $2$，要先整條除以 $2$。',
