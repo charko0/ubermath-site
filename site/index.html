@@ -546,6 +546,10 @@ table.sl .lf i { display: inline-block; width: 1.5em; font-style: normal; }
 .ladder li { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 4px 4px; border: 1px solid var(--line); border-bottom-width: 3px; color: var(--muted); font-size: .76rem; line-height: 1.2; }
 .ladder li span { font-weight: 700; letter-spacing: .03em; }
 .ladder li i { font-style: normal; font-size: .7rem; font-variant-numeric: tabular-nums; }
+.ladder li.jump, .dots i.jump { cursor: pointer; }
+.tjump { margin: 6px 0 0; font-size: .78rem; }
+.ladder li.jump:hover, .ladder li.jump:focus-visible { border-color: var(--ink); color: var(--ink); }
+.dots i.jump:hover, .dots i.jump:focus-visible { border-color: var(--red); }
 .ladder li.done { color: var(--ink); border-bottom-color: var(--gold-hi); background: var(--gold-soft); }
 .ladder li.cur { color: var(--ink); border-color: var(--ink); border-bottom-color: var(--red); }
 .gate { flex: 1 1 100%; border: 1.5px solid var(--gold); background: var(--gold-soft); padding: 14px 16px; display: grid; gap: 8px; }
@@ -69858,8 +69862,8 @@ function practiceView(el, u, s, idx) {
   if (d.qi >= qs.length) { d.qi = 0; d.results = {}; save(); }
   const q = qs[d.qi];
   let streak = 0; for (let k = d.qi - 1; k >= 0; k--) { const r = d.results[qs[k].id]; if (r && r.first && !r.hints) streak++; else break; }
-  const dots = qs.map((qq, k) => { const r = d.results[qq.id]; return `<i class="${k === d.qi ? 'cur' : r ? (r.first && !r.hints ? 'ok' : 'help') : ''}"></i>`; }).join('');
-  const head = `<div class="qhead"><span class="qcount">第 ${d.qi + 1} / ${qs.length} 題</span>${lvBadge(q.level)}${q.paper ? `<span class="paper">${esc(q.paper)}${q.marks ? ` · ${q.marks} 分` : ''}</span>` : ''}${streak >= 2 ? `<span class="combo">連續答對 ${streak} 題</span>` : ''}<span class="dots" aria-hidden="true">${dots}</span></div>${ladderHTML(qs, d, q)}`;
+  const dots = qs.map((qq, k) => { const r = d.results[qq.id]; return `<i data-k="${k}" class="${k === d.qi ? 'cur' : r ? (r.first && !r.hints ? 'ok' : 'help') : ''}"></i>`; }).join('');
+  const head = `<div class="qhead"><span class="qcount">第 ${d.qi + 1} / ${qs.length} 題</span>${lvBadge(q.level)}${q.paper ? `<span class="paper">${esc(q.paper)}${q.marks ? ` · ${q.marks} 分` : ''}</span>` : ''}${streak >= 2 ? `<span class="combo">連續答對 ${streak} 題</span>` : ''}<span class="dots" aria-hidden="true">${dots}</span></div>${ladderHTML(qs, d, q)}${S.unlockAll ? '<p class="note tjump">老師預覽：按上面的等級或右上角的題號，可以直接跳到那一題。</p>' : ''}`;
   cardFor(q)(el, q, q.uid, head, (res, qact) => {
     d.results[q.id] = res;
     if (window.UBER_HOOK) UBER_HOOK.attempt({ qid: q.uid, unit: u.id, station: s.id, level: lvName(q.level), res });
@@ -69876,7 +69880,13 @@ function practiceView(el, u, s, idx) {
     const nb = qact.querySelector('#nextq'); nb.focus({ preventScroll: true });
     nb.onclick = () => { if (last) finishStation(u, s, idx); else { d.qi++; save(); renderStation(); window.scrollTo({ top: 0 }); } };
     const sb = qact.querySelector('#stopq'); if (sb) sb.onclick = () => finishStation(u, s, idx, d.qi + 1);
-  });
+  });  /* teacher preview: jump straight to any level or question */
+  if (S.unlockAll) {
+    const jump = k => { if (k < 0 || k === d.qi) return; d.qi = k; save(); renderStation(); window.scrollTo({ top: 0 }); };
+    const wire = (node, k, label) => { node.classList.add('jump'); node.tabIndex = 0; node.setAttribute('role', 'button'); node.title = label; node.onclick = () => jump(k); node.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jump(k); } }; };
+    el.querySelectorAll('.ladder li[data-l]').forEach(li => wire(li, qs.findIndex(x => lvKey(x.level) === li.dataset.l), '老師預覽：跳到這個等級的第一題'));
+    el.querySelectorAll('.dots i[data-k]').forEach(i => wire(i, +i.dataset.k, `老師預覽：跳到第 ${+i.dataset.k + 1} 題`));
+  }
 }
 /* students label what went wrong; the retry list groups by it */
 const KINDS = [['concept', '概念未明'], ['careless', '粗心或看錯題'], ['calc', '計算或計算機出錯']];
@@ -70379,7 +70389,7 @@ document.addEventListener('click', e => {
   else if (a === 'unit') go('unit', { u: b.dataset.u });
   else if (a === 'open') { const u = UNIT[b.dataset.u], i = +b.dataset.i; if (unlockedS(u, i)) go(u.stations[i].kind === 'solid' ? 'solid' : 'station', { u: u.id, i }); }
   else if (a === 'stage') toStage(b.dataset.k);
-  else if (a === 'unlock') { S.unlockAll = !S.unlockAll; save(); render(); }
+  else if (a === 'unlock') { S.unlockAll = !S.unlockAll; try { if (S.unlockAll) sessionStorage.removeItem('uber_t_lock'); else sessionStorage.setItem('uber_t_lock', '1'); } catch (e) {} save(); render(); }
   else if (a === 'worked-done') { const u = UNIT[S.view.u], d = P(u.id, u.stations[S.view.i].id); if (!d.xpFlags.worked) { d.xpFlags.worked = 1; addXP(5, '看完例題'); } toStage('faded'); }
   else if (a === 'faded-done') { const u = UNIT[S.view.u], s = u.stations[S.view.i], d = P(u.id, s.id); if (!d.xpFlags.faded) { d.xpFlags.faded = 1; addXP(5, '引導練習完成'); } if (d.qi >= s.practice.length) { d.qi = 0; d.results = {}; } toStage('practice'); }
   else if (a === 'smode') { const u = UNIT[S.view.u]; P(u.id, u.stations[S.view.i].id).mode = b.dataset.m; save(); render(); window.scrollTo({ top: 0 }); }
@@ -70551,6 +70561,8 @@ render();
     first.innerHTML = `<span class="lat">ÜBERMATH</span>　<span id="usync" data-s="ok" aria-hidden="true"></span>${h(profile ? profile.display_name || '' : '')}${profile && profile.class_name ? `（${h(profile.class_name)}）` : ''}　${t('進度已儲存到雲端。', 'Progress is saved online.')}`;
     const isT = profile && profile.role === 'teacher';
     const ub = document.getElementById('unlockbtn'); if (ub) ub.hidden = !isT;
+    let tLock = false; try { tLock = !!sessionStorage.getItem('uber_t_lock'); } catch (e) {}
+    if (isT && !S.unlockAll && !tLock) { S.unlockAll = true; render(); }
     const rz = document.getElementById('resetzone'); if (rz) rz.hidden = !isT;
     if (!document.getElementById('upw')) {
       const mk = (id, zh, en, fn) => { const b = document.createElement('button'); b.className = 'linkbtn'; b.id = id; b.setAttribute('data-noi18n', ''); b.textContent = t(zh, en); b.onclick = fn; f.appendChild(b); };
