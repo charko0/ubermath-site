@@ -73643,7 +73643,7 @@ function renderFeedback() {
     z.querySelector('#fb-again').onclick = () => { FB.sent = false; FB.mood = null; FB.tags = []; renderFeedback(); };
     return;
   }
-  const open = !!FB.mood || FB.tags.length > 0;
+  const open = true;
   z.innerHTML = `<div class="fb-card${open ? ' open' : ''}">${fbMascot()}<div class="fb-main">
     <div class="fb-bubble">你覺得 Übermath 好用嗎？</div>
     <p class="fb-sub">試用期間很想聽你的意見，好的壞的都歡迎。</p>
