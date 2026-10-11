@@ -73650,7 +73650,7 @@ function renderFeedback() {
     <div class="fb-moods" role="group" aria-label="整體感覺">${FB_MOODS.map(([k, l]) => `<button class="fb-mood${FB.mood === k ? ' on' : ''}" data-m="${k}" aria-pressed="${FB.mood === k}">${fbFace(k)}<span>${l}</span></button>`).join('')}</div>
     ${open ? `<div class="fb-tags" role="group" aria-label="意見類型">${FB_TAGS.map(t => `<button class="fb-tag${FB.tags.includes(t) ? ' on' : ''}" data-t="${t}" aria-pressed="${FB.tags.includes(t)}">${t}</button>`).join('')}</div>
     <textarea id="fb-msg" maxlength="500" rows="3" placeholder="想說甚麼都可以：哪一題有問題、哪裏看不明白、想加甚麼……"></textarea>
-    <div class="fb-row"><button class="btn" id="fb-send">送出意見</button><span class="fb-note" id="fb-note">${window.UBER_HOOK && UBER_HOOK.feedback ? '老師會看到你的名字和意見。' : '這是預覽版，意見不會送出。'}</span></div>` : ''}
+    <div class="fb-row"><button class="btn" id="fb-send">送出意見</button><span class="fb-note" id="fb-note">${window.UBER_HOOK && UBER_HOOK.feedback ? '' : '這是預覽版，意見不會送出。'}</span></div>` : ''}
   </div></div>`;
   z.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const keep = z.querySelector('#fb-msg'); FB.draft = keep ? keep.value : FB.draft; FB.mood = FB.mood === b.dataset.m ? null : b.dataset.m; renderFeedback(); });
   z.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const t = b.dataset.t, keep = z.querySelector('#fb-msg'); FB.draft = keep ? keep.value : FB.draft; FB.tags = FB.tags.includes(t) ? FB.tags.filter(x => x !== t) : FB.tags.concat([t]); renderFeedback(); });
