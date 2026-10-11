@@ -571,6 +571,8 @@ table.sl .lf i { display: inline-block; width: 1.5em; font-style: normal; }
 .rdue { font-size: .9rem; color: var(--muted); border: 1px solid var(--muted); padding: 2px 10px; white-space: nowrap; }
 kbd.key { display: inline-block; min-width: 1.9em; padding: 0 .45em; margin: 1px 1px; font: 600 .78em/1.75 var(--f-sans, system-ui), sans-serif; letter-spacing: .02em; text-align: center; color: var(--ink); background: var(--sheet); border: 1px solid var(--ink); border-bottom-width: 3px; border-radius: 4px; vertical-align: .08em; white-space: nowrap; }
 .rstage { display: inline-block; font-size: .82rem; font-weight: 600; color: var(--gold); border: 1px solid var(--gold); padding: 0 8px; margin-right: 8px; letter-spacing: .03em; }
+.tool-keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.tool-keys kbd.key { font-size: .9rem; padding: 2px 10px; }
 
 /* ---------- Übermath cloud: sign-in gate ---------- */
 html.uber-locked body > *:not(#ugate):not(.bgplate) { visibility: hidden; }
@@ -692,9 +694,9 @@ textarea.td-batch { width: 100%; min-height: 150px; font-family: ui-monospace, M
    ========================================================= */
 const UNITS = [];
 function unit(def) { UNITS.push(def); }
-const uName = u => u.base ? `基座 ${u.code}` : `第 ${u.lu} 單元`;
-const uLat = u => u.base ? `BASIS ${u.code}` : `LU ${u.lu}`;
-const STRANDS = { base: '基座：初中保底課題', na: '數與代數範疇', mss: '度量、圖形與空間範疇', dh: '數據處理範疇' };
+const uName = u => u.tool ? '工具' : u.base ? `基座 ${u.code}` : `第 ${u.lu} 單元`;
+const uLat = u => u.tool ? 'TOOLKIT' : u.base ? `BASIS ${u.code}` : `LU ${u.lu}`;
+const STRANDS = { base: '基座：初中保底課題', na: '數與代數範疇', mss: '度量、圖形與空間範疇', dh: '數據處理範疇', tool: '工具：計算機技巧' };
 const STAGES = [['concept', '概念'], ['worked', '例題'], ['faded', '引導練習'], ['practice', '練習']];
 const PARTS = ['柱礎', '柱身', '柱頭'];
 /* 預計 DSE 等級：2, 3, 4, 5, 5.5 (= 5*), 6 (= 5**) */
@@ -2918,13 +2920,13 @@ unit({
   ]
 });
 
-/* 基座 F7 計算機技巧（由 qgen/f7_gen.py 產生，不要直接修改） */
+/* 工具：計算機技巧（由 qgen/f7_gen.py 產生，不要直接修改） */
 unit({
  "id": "f7",
  "lu": 0.7,
- "base": true,
- "code": "F7",
- "strand": "base",
+ "tool": true,
+ "code": "工具",
+ "strand": "tool",
  "title": "計算機技巧",
  "tag": "SOLVE 解方程、SD 模式求標準差、CALC 代入和記憶：卷一、卷二都用得着。",
  "lede": "計算機用得熟，卷二可以省時間，卷一可以驗算，也不會因捨入誤差失分。按鍵以 Casio fx-50FH II 為例。",
@@ -71889,7 +71891,7 @@ function coordFig(o) {
     UNIT[u.id] = u; TOTAL_ST += u.stations.length;
     u.stations.forEach(s => (Array.isArray(s.practice) ? s.practice : []).forEach(q => { QIDX[`${u.id}.${s.id}.${q.id}`] = { u, s, q }; }));
   });
-  const unitName = u => (u.base ? `基座 ${u.code}` : `第 ${u.lu} 單元`) + ' ' + u.title;
+  const unitName = u => (u.tool ? '工具' : u.base ? `基座 ${u.code}` : `第 ${u.lu} 單元`) + ' ' + u.title;
   const levelNum = l => (l === 'Lv5**' ? 6 : l === 'Lv5*' ? 5.5 : l ? parseFloat(String(l).replace('Lv', '')) : null);
 
   /* ---------- state ---------- */
