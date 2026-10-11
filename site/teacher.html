@@ -574,6 +574,43 @@ kbd.key { display: inline-block; min-width: 1.9em; padding: 0 .45em; margin: 1px
 .tool-keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
 .tool-keys kbd.key { font-size: .9rem; padding: 2px 10px; }
 code.prog { display: block; margin: 6px 0; padding: 8px 10px; font: 500 .92rem/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--sheet); border: 1px solid var(--line); border-left: 3px solid var(--gold); word-break: break-all; white-space: pre-wrap; color: var(--ink); }
+/* feedback box */
+.fbz { max-width: 1120px; margin: 40px auto 0; padding: 0 16px; }
+.fb-card { position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 18px; align-items: start; background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 18px; padding: 18px 20px 18px 14px; box-shadow: 5px 5px 0 var(--gold-soft, #efe4c8); }
+.fb-pal { width: 92px; height: auto; animation: palBob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.fb-card.done .fb-pal { animation: palHop .7s cubic-bezier(.3, 1.6, .5, 1) 2; }
+@keyframes palBob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-4px) rotate(2deg); } }
+@keyframes palHop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px) scale(1.04, .97); } }
+@media (prefers-reduced-motion: reduce) { .fb-pal, .fb-card.done .fb-pal { animation: none; } }
+.pal-cap { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.pal-body { fill: var(--sheet); stroke: var(--ink); stroke-width: 2; }
+.pal-vol { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.pal-flute { stroke: var(--line, #d9d6cc); stroke-width: 1.5; }
+.pal-eye { fill: var(--ink); } .pal-shine { fill: #fff; }
+.pal-blush { fill: #f2a7a0; opacity: .75; }
+.pal-mouth { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+.pal-sh { fill: var(--ink); opacity: .12; }
+.fb-main { display: grid; gap: 10px; min-width: 0; }
+.fb-bubble { position: relative; justify-self: start; background: var(--ink); color: var(--paper, #f8f8f6); font-weight: 700; font-size: 1.05rem; padding: 8px 14px; border-radius: 14px; }
+.fb-bubble::before { content: ""; position: absolute; left: -8px; top: 14px; border: 6px solid transparent; border-right: 8px solid var(--ink); border-left: 0; }
+.fb-sub { margin: 0; color: var(--muted); font-size: .95rem; }
+.fb-moods { display: flex; flex-wrap: wrap; gap: 8px; }
+.fb-mood { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 6px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--sheet); color: var(--ink); font-size: .95rem; transition: transform .15s ease, background .15s ease; }
+.fb-mood svg { width: 30px; height: 30px; }
+.fb-mood:hover { transform: translateY(-2px) rotate(-1deg); }
+.fb-mood.on { background: var(--gold-soft, #efe4c8); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.fe-bg { fill: #ffe7a3; stroke: var(--ink); stroke-width: 1.4; }
+.fb-mood[data-m=bad] .fe-bg { fill: #dfe7f2; } .fb-mood[data-m=meh] .fe-bg { fill: #f1eee4; }
+.fe-e { fill: var(--ink); } .fe-h { fill: #e2574c; } .fe-c { fill: #f2a7a0; opacity: .8; }
+.fe-m { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.fb-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.fb-tag { padding: 4px 12px; border: 1px dashed var(--ink); border-radius: 999px; background: transparent; color: var(--ink); font-size: .9rem; }
+.fb-tag.on { border-style: solid; background: var(--ink); color: var(--paper, #f8f8f6); }
+#fb-msg { width: 100%; box-sizing: border-box; font: inherit; font-size: 1rem; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: 12px; background: var(--sheet); color: var(--ink); resize: vertical; min-height: 84px; }
+.fb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.fb-note { color: var(--muted); font-size: .88rem; }
+@media (max-width: 560px) { .fb-card { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 14px 14px 14px 10px; } .fb-pal { width: 64px; } .fb-bubble { font-size: .98rem; } }
+.fb-main .linkbtn { justify-self: start; }
 
 /* ---------- Übermath cloud: sign-in gate ---------- */
 html.uber-locked body > *:not(#ugate):not(.bgplate) { visibility: hidden; }
@@ -683,6 +720,11 @@ textarea.td-batch { width: 100%; min-height: 150px; font-family: ui-monospace, M
 @media (max-width: 640px) { .hb { grid-template-columns: 90px 1fr 54px; } .td-tile .v { font-size: 24px; } }
 .td-card .lede { max-width: none; font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
 .td-filters .btn, .td-actions .btn { padding: 5px 14px; font-size: 14px; min-height: 0; }
+.fb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fb-item { border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 8px; padding: 10px 14px; background: var(--sheet); display: grid; gap: 6px; }
+.fb-item.done { opacity: .55; border-left-color: var(--line); }
+.fb-h, .fb-f { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fb-msg { margin: 0; white-space: pre-wrap; line-height: 1.6; }
 </style>
 <script src="config.js"></script>
 <script src="vendor/supabase.js"></script>
@@ -72338,6 +72380,8 @@ function coordFig(o) {
     D.profiles = pf; D.emails = {}; (em.data || []).forEach(r => (D.emails[r.id] = r));
     D.progress = {}; pg.forEach(r => (D.progress[r.user_id] = r));
     D.attempts = at; D.kinds = ek;
+    const fb = await sb.from('feedback').select('id, user_id, mood, tags, message, page, lang, handled, created_at').order('created_at', { ascending: false }).limit(1000);
+    D.feedback = fb.error ? null : fb.data || [];
     render();
   }
 
@@ -72381,7 +72425,7 @@ function coordFig(o) {
   function shell() {
     root.innerHTML = `<header class="td-bar"><div class="td-bar-in">
       <span class="td-brand"><span class="ink-img logo" aria-hidden="true"></span>ÜBERMATH<small>老師後台</small></span>
-      <nav class="td-tabs" role="tablist">${[['overview', '總覽'], ['students', '學生'], ['questions', '常錯題目'], ['topics', '課題掌握'], ['settings', '帳戶與設定']].map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${D.tab === k}">${l}</button>`).join('')}</nav>
+      <nav class="td-tabs" role="tablist">${[['overview', '總覽'], ['students', '學生'], ['questions', '常錯題目'], ['topics', '課題掌握'], ['feedback', '學生意見'], ['settings', '帳戶與設定']].map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${D.tab === k}">${l}</button>`).join('')}</nav>
       <span class="td-gap"></span>
       <span class="note">${h(D.me.display_name || '')}</span>
       <a class="linkbtn" href="index.html">學生網站</a>
@@ -72418,10 +72462,63 @@ function coordFig(o) {
     root.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === D.tab)));
     const w = root.querySelector('.td-wrap');
     if (D.detail) { w.innerHTML = detailView(D.detail); wireDetail(w); return; }
-    w.innerHTML = ({ overview, students: studentsView, questions, topics, settings })[D.tab]();
+    w.innerHTML = ({ overview, students: studentsView, questions, topics, feedback: feedbackView, settings })[D.tab]();
     wireFilters(w);
     if (D.tab === 'students') wireStudents(w);
     if (D.tab === 'settings') wireSettings(w);
+    if (D.tab === 'feedback') wireFeedback(w);
+  }
+
+  /* ---------- student feedback ---------- */
+  const MOODS = { love: '很喜歡', good: '不錯', meh: '一般', bad: '不太好' };
+  function pageLabel(pg) {
+    if (!pg) return '';
+    const [kind, uid, sid] = pg.split(':'), u = UNITS.find(x => x.id === uid);
+    if (kind === 'home') return '首頁';
+    if (kind === 'retry') { const L = qLabel(uid); return '錯題再戰 · ' + (L ? L.where : uid); }
+    if (!u) return pg;
+    const st = sid ? u.stations.find(x => x.id === sid) : null;
+    return unitName(u) + (st ? ' · ' + st.title : '');
+  }
+  function feedbackRows() {
+    const byId = {}; D.profiles.forEach(p => (byId[p.id] = p));
+    return (D.feedback || []).filter(f => (!D.fbOpen || !f.handled) && (!D.cls || (byId[f.user_id] || {}).class_name === D.cls)).map(f => ({ f, p: byId[f.user_id] || {} }));
+  }
+  function feedbackView() {
+    if (D.feedback == null) return `<section class="td-card"><h2>學生意見</h2><p class="td-empty">意見欄的資料表未建立。請在 Supabase 的 SQL Editor 執行 feedback.sql，然後按「重新載入」。</p><button class="btn ghost" id="f-reload">重新載入</button></section>`;
+    const rows = feedbackRows(), all = D.feedback, open = all.filter(f => !f.handled).length;
+    const mc = {}; all.forEach(f => { if (f.mood) mc[f.mood] = (mc[f.mood] || 0) + 1; });
+    const tc = {}; all.forEach(f => (f.tags || []).forEach(t => (tc[t] = (tc[t] || 0) + 1)));
+    const classes = [...new Set(D.profiles.filter(p => p.role === 'student').map(p => p.class_name).filter(Boolean))].sort();
+    return `<div class="td-filters">
+        <label>班別 <select id="fb-cls"><option value="">全部</option>${classes.map(c => `<option${D.cls === c ? ' selected' : ''}>${h(c)}</option>`).join('')}</select></label>
+        <label><input type="checkbox" id="fb-open"${D.fbOpen ? ' checked' : ''}> 只顯示未處理</label>
+        <button class="btn ghost" id="f-reload">重新載入</button>
+        <button class="btn ghost" id="fb-csv">匯出 CSV</button>
+      </div>
+      <div class="td-tiles">
+        <div class="td-tile"><div class="k">意見總數</div><div class="v">${all.length}</div><div class="s">未處理 ${open} 條</div></div>
+        ${Object.entries(MOODS).map(([k, l]) => `<div class="td-tile"><div class="k">${l}</div><div class="v">${mc[k] || 0}</div></div>`).join('')}
+      </div>
+      <section class="td-card"><h2>意見類型</h2>${bars(Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ l, v })))}</section>
+      <section class="td-card"><h2>意見（${rows.length} 條）</h2>
+        ${rows.length ? `<ul class="fb-list">${rows.map(({ f, p }) => `<li class="fb-item${f.handled ? ' done' : ''}">
+          <div class="fb-h"><b>${h(p.display_name || '（未知學生）')}</b>${p.class_name ? `<span class="note">${h(p.class_name)}</span>` : ''}${f.mood ? `<span class="pill ${f.mood === 'love' || f.mood === 'good' ? 'good' : f.mood === 'bad' ? 'warn' : ''}">${MOODS[f.mood]}</span>` : ''}${(f.tags || []).map(t => `<span class="pill">${h(t)}</span>`).join('')}<span class="td-gap"></span><span class="note">${fmtDate(f.created_at)}${f.lang === 'en' ? ' · EN' : ''}</span></div>
+          ${f.message ? `<p class="fb-msg">${h(f.message)}</p>` : ''}
+          <div class="fb-f"><span class="note">${h(pageLabel(f.page))}</span><span class="td-gap"></span><label class="note"><input type="checkbox" data-fb="${f.id}"${f.handled ? ' checked' : ''}> 已處理</label></div>
+        </li>`).join('')}</ul>` : '<p class="td-empty">暫時沒有意見。</p>'}
+      </section>`;
+  }
+  function wireFeedback(w) {
+    const r = w.querySelector('#f-reload'); if (r) r.onclick = () => load().catch(fail);
+    const c = w.querySelector('#fb-cls'); if (c) c.onchange = e => { D.cls = e.target.value; render(); };
+    const o = w.querySelector('#fb-open'); if (o) o.onchange = e => { D.fbOpen = e.target.checked; render(); };
+    const x = w.querySelector('#fb-csv'); if (x) x.onclick = () => download(`ubermath-feedback-${today()}.csv`, csv([['時間', '姓名', '班別', '感覺', '類型', '意見', '頁面', '語言', '已處理']].concat(feedbackRows().map(({ f, p }) => [f.created_at, p.display_name, p.class_name, MOODS[f.mood] || '', (f.tags || []).join('、'), f.message, pageLabel(f.page), f.lang, f.handled ? '是' : '否']))), 'text/csv');
+    w.querySelectorAll('[data-fb]').forEach(cb => cb.onchange = async () => {
+      const id = +cb.dataset.fb, v = cb.checked, { error } = await sb.from('feedback').update({ handled: v }).eq('id', id);
+      if (error) { cb.checked = !v; cb.parentElement.append(' 更新失敗'); return; }
+      const f = D.feedback.find(z => z.id === id); if (f) f.handled = v; render();
+    });
   }
 
   function overview() {
