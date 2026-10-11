@@ -564,6 +564,13 @@ table.sl .lf i { display: inline-block; width: 1.5em; font-style: normal; }
 .symk { min-width: 40px; min-height: 36px; border: 1px solid var(--line); background: var(--paper); font-family: var(--f-math); font-size: 1.05rem; cursor: pointer; color: var(--ink); }
 .symk:hover, .symk:focus-visible { border-color: var(--gold); }
 .ans-sym { min-width: 0; flex: 1 1 220px; }
+.fb.help { border-left: 3px solid var(--gold); background: var(--sheet); display: flex; flex-direction: column; gap: 4px; }
+.rsec { font-size: 1.05rem; margin: 18px 0 8px; letter-spacing: .04em; }
+.rlist.later .ritem { opacity: .78; }
+.rlist.later .ritem:hover { transform: none; box-shadow: none; }
+.rdue { font-size: .9rem; color: var(--muted); border: 1px solid var(--muted); padding: 2px 10px; white-space: nowrap; }
+kbd.key { display: inline-block; min-width: 1.9em; padding: 0 .45em; margin: 1px 1px; font: 600 .78em/1.75 var(--f-sans, system-ui), sans-serif; letter-spacing: .02em; text-align: center; color: var(--ink); background: var(--sheet); border: 1px solid var(--ink); border-bottom-width: 3px; border-radius: 4px; vertical-align: .08em; white-space: nowrap; }
+.rstage { display: inline-block; font-size: .82rem; font-weight: 600; color: var(--gold); border: 1px solid var(--gold); padding: 0 8px; margin-right: 8px; letter-spacing: .03em; }
 
 /* ---------- Übermath cloud: sign-in gate ---------- */
 html.uber-locked body > *:not(#ugate):not(.bgplate) { visibility: hidden; }
@@ -737,7 +744,7 @@ function mathHTML(src) {
 }
 function rich(s) {
   if (s == null || s === '') return '';
-  return String(s).replace(/#\$/g, '\u0002').split('$').map((part, k) => k % 2 ? mathHTML(part) : esc(part)).join('').replace(/\u0002/g, '$').replace(/==(.+?)==/g, '<mark>$1</mark>').replace(/\n/g, '<br>');
+  return String(s).replace(/#\$/g, '\u0002').split('$').map((part, k) => k % 2 ? mathHTML(part) : esc(part).replace(/\[\[(.+?)\]\]/g, '<kbd class="key">$1</kbd>')).join('').replace(/\u0002/g, '$').replace(/==(.+?)==/g, '<mark>$1</mark>').replace(/\n/g, '<br>');
 }
 
 /* ---------- motion helpers ---------- */
@@ -2909,6 +2916,1289 @@ unit({
       ]
     }
   ]
+});
+
+/* 基座 F7 計算機技巧（由 qgen/f7_gen.py 產生，不要直接修改） */
+unit({
+ "id": "f7",
+ "lu": 0.7,
+ "base": true,
+ "code": "F7",
+ "strand": "base",
+ "title": "計算機技巧",
+ "tag": "SOLVE 解方程、SD 模式求標準差、CALC 代入和記憶：卷一、卷二都用得着。",
+ "lede": "計算機用得熟，卷二可以省時間，卷一可以驗算，也不會因捨入誤差失分。按鍵以 Casio fx-50FH II 為例。",
+ "stations": [
+  {
+   "id": "solve",
+   "title": "SOLVE：解方程和驗算",
+   "tag": "卷二直接求答案，卷一用來驗算",
+   "concept": {
+    "big": "有未知數的方程，計算機可以用 SOLVE 直接求出數值答案。卷二選擇題可以直接用；卷一要寫步驟，SOLVE 用來驗算。",
+    "points": [
+     "輸入方程：用 [[ALPHA]] [[X]] 輸入 $x$，方程中的「=」用 [[ALPHA]] [[CALC]] 輸入。",
+     "按 [[SHIFT]] [[CALC]]（SOLVE），輸入一個估計值作起始值，按 [[=]]。",
+     "二次方程有兩個根，SOLVE 每次只給出一個：換一個起始值（例如分別用 −10 和 10）再解一次。",
+     "有 $#log x$ 或 $#sqrt{x}$ 的方程，起始值要在定義域內（例如用正數）。",
+     "題目要求「準確至三位有效數字」：用 SOLVE 得到的完整數值，最後才四捨五入。",
+     "本單元的按鍵以 Casio fx-50FH II 為例。不同型號的按鍵可能略有不同（有些型號 SOLVE 後要再按一次 [[=]] 或 SOLVE），請以自己計算機的說明書為準。"
+    ],
+    "recipe": [
+     "輸入方程（「=」用 ALPHA CALC）",
+     "SHIFT CALC（SOLVE）",
+     "輸入起始值，按 =",
+     "換起始值找另一個根",
+     "按題目要求四捨五入"
+    ]
+   },
+   "worked": {
+    "q": "解方程 $2x^2 - 7x + 2 = 0$，答案準確至三位有效數字。",
+    "steps": [
+     {
+      "label": "輸入方程",
+      "m": "2[[ALPHA]][[X]]$^2$ − 7[[ALPHA]][[X]] + 2 [[ALPHA]][[CALC]] 0",
+      "why": "方程中的「=」是 [[ALPHA]] [[CALC]]，不是 [[=]] 鍵。"
+     },
+     {
+      "label": "起始值 0，SOLVE",
+      "m": "$x = 0.3138593384$…",
+      "why": "起始值 0 附近的根。"
+     },
+     {
+      "label": "起始值 5，再 SOLVE",
+      "m": "$x = 3.186140662$…",
+      "why": "換一個較大的起始值，得到另一個根。"
+     },
+     {
+      "label": "四捨五入",
+      "m": "$x #approx 0.314$ 或 $x #approx 3.19$"
+     }
+    ]
+   },
+   "faded": {
+    "q": "把 1 000 元存入銀行，年利率 4%，每年複利計算一次。最少要存多少年，本利和才超過 1 500 元？",
+    "steps": [
+     {
+      "label": "列方程",
+      "m": "$1000(1.04)^n = 1500$"
+     },
+     {
+      "label": "SOLVE",
+      "blank": {
+       "type": "num",
+       "prompt": "SOLVE $1000(1.04)^X = 1500$，得 $X$ 是多少？（準確至三位有效數字）",
+       "label": "$X$",
+       "answer": 10.3,
+       "tol": 0.050000001,
+       "wrong": [
+        {
+         "v": [
+          12.5
+         ],
+         "msg": "複利不是 $500 #div 40$。用 SOLVE 解方程。"
+        }
+       ],
+       "hints": [
+        "輸入 1000 × 1.04^[[ALPHA]][[X]] [[ALPHA]][[CALC]] 1500。",
+        "起始值 10。"
+       ]
+      }
+     },
+     {
+      "label": "取整數",
+      "m": "$n$ 是比 10.3 大的最小整數，所以最少 11 年",
+      "why": "$1.04^{10} #times 1000 #approx 1480.24 < 1500$，第 11 年才超過。"
+     }
+    ]
+   },
+   "practice": [
+    {
+     "id": "p1",
+     "type": "num",
+     "prompt": "解方程 $3x^2 - 5x - 4 = 0$，求正數根，準確至三位有效數字。",
+     "label": "正數根",
+     "answer": 2.26,
+     "hints": [
+      "輸入 3[[ALPHA]][[X]]$^2$ − 5[[ALPHA]][[X]] − 4 [[ALPHA]][[CALC]] 0。",
+      "用正數（例如 5）作起始值，再按 SOLVE。"
+     ],
+     "solution": [
+      "SOLVE（起始值 5）：$x = 2.257333958$…",
+      "$x #approx 2.26$"
+     ],
+     "level": 2,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        -0.591
+       ],
+       "msg": "這是負數根。題目要正數根：用正數作起始值再解一次。"
+      }
+     ],
+     "twin": {
+      "prompt": "解方程 $2x^2 + 3x - 7 = 0$，求正數根，準確至三位有效數字。",
+      "hints": [
+       "用正數作起始值。",
+       "SOLVE 後四捨五入至三位有效數字。"
+      ],
+      "solution": [
+       "$x = 1.265564437$…",
+       "$x #approx 1.27$"
+      ],
+      "answer": 1.27,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p2",
+     "type": "num",
+     "prompt": "方程 $x^3 - 2x - 5 = 0$ 只有一個實根。求這個根，準確至三位有效數字。",
+     "label": "$x$",
+     "answer": 2.09,
+     "hints": [
+      "三次方程也可以用 SOLVE。",
+      "起始值用 2 就可以。"
+     ],
+     "solution": [
+      "SOLVE：$x = 2.094551482$…",
+      "$x #approx 2.09$"
+     ],
+     "level": 2,
+     "tol": 0.0050000010000000004,
+     "twin": {
+      "prompt": "方程 $x^3 + x - 4 = 0$ 只有一個實根。求這個根，準確至三位有效數字。",
+      "hints": [
+       "用 SOLVE，起始值 1。",
+       "四捨五入至三位有效數字。"
+      ],
+      "solution": [
+       "$x = 1.3787967$…",
+       "$x #approx 1.38$"
+      ],
+      "answer": 1.38,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p3",
+     "type": "num",
+     "prompt": "把 5 000 元存入銀行，年利率 $r#%$，每年複利計算一次。3 年後本利和是 5 800 元。求 $r$，準確至三位有效數字。",
+     "label": "$r$",
+     "answer": 5.07,
+     "hints": [
+      "方程：$5000(1 + #frac{X}{100})^3 = 5800$。",
+      "直接輸入這條方程，用 SOLVE（起始值 5）。"
+     ],
+     "solution": [
+      "$5000(1 + #frac{r}{100})^3 = 5800$",
+      "SOLVE：$r = 5.07175745$…",
+      "$r #approx 5.07$"
+     ],
+     "level": 3,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        5.33
+       ],
+       "msg": "複利不是 16 ÷ 3。用 SOLVE 解方程。"
+      }
+     ],
+     "twin": {
+      "prompt": "把 8 000 元存入銀行，年利率 $r#%$，每年複利計算一次。4 年後本利和是 9 500 元。求 $r$，準確至三位有效數字。",
+      "hints": [
+       "$8000(1 + #frac{X}{100})^4 = 9500$。",
+       "用 SOLVE。"
+      ],
+      "solution": [
+       "$8000(1 + #frac{r}{100})^4 = 9500$",
+       "$r = 4.389881496$…，$r #approx 4.39$"
+      ],
+      "answer": 4.39,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p4",
+     "type": "num",
+     "prompt": "解 $2^x = 15$，準確至三位有效數字。",
+     "label": "$x$",
+     "answer": 3.91,
+     "hints": [
+      "可以用對數：$x = #frac{#log 15}{#log 2}$。",
+      "也可以直接 SOLVE：$2^X = 15$。"
+     ],
+     "solution": [
+      "$x = #frac{#log 15}{#log 2} = 3.906890596$…",
+      "$x #approx 3.91$"
+     ],
+     "level": 3,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        7.5
+       ],
+       "msg": "$2^x$ 不是 $2x$。"
+      }
+     ],
+     "twin": {
+      "prompt": "解 $3^x = 40$，準確至三位有效數字。",
+      "hints": [
+       "$x = #frac{#log 40}{#log 3}$。",
+       "或 SOLVE：$3^X = 40$。"
+      ],
+      "solution": [
+       "$x = 3.357762781$…",
+       "$x #approx 3.36$"
+      ],
+      "answer": 3.36,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p5",
+     "type": "mc",
+     "prompt": "以下哪一個是方程 $x^2 - 6x + 7 = 0$ 的根？",
+     "options": [
+      {
+       "t": "$3 + #sqrt{2}$",
+       "ok": true
+      },
+      {
+       "t": "$3 + #sqrt{7}$",
+       "why": "代入檢查：$3 + #sqrt{7} #approx 5.6458$，代入左方不等於 0。"
+      },
+      {
+       "t": "$-3 + #sqrt{2}$",
+       "why": "兩根之和是 6，根應該是正數。"
+      },
+      {
+       "t": "$6 + #sqrt{2}$",
+       "why": "代入左方不等於 0。"
+      }
+     ],
+     "hints": [
+      "用 SOLVE 求出兩個根的小數值，再和選項比較。",
+      "兩個根約是 1.5858 和 4.4142；$3 + #sqrt{2} #approx 4.4142$。"
+     ],
+     "solution": [
+      "SOLVE：$x #approx 4.4142$ 或 $x #approx 1.5858$",
+      "$3 + #sqrt{2}$ 的值相同"
+     ],
+     "level": 3,
+     "twin": {
+      "prompt": "以下哪一個是方程 $x^2 - 4x - 1 = 0$ 的根？",
+      "hints": [
+       "SOLVE 求兩個根。",
+       "約 −0.2361 和 4.2361。"
+      ],
+      "solution": [
+       "$2 - #sqrt{5} #approx −0.2361$，是其中一個根"
+      ],
+      "options": [
+       {
+        "t": "$2 - #sqrt{5}$",
+        "ok": true
+       },
+       {
+        "t": "$2 - #sqrt{3}$",
+        "why": "代入檢查，左方不等於 0。"
+       },
+       {
+        "t": "$-2 + #sqrt{5}$",
+        "why": "代入檢查，左方不等於 0。"
+       },
+       {
+        "t": "$4 + #sqrt{5}$",
+        "why": "代入檢查，左方不等於 0。"
+       }
+      ]
+     }
+    },
+    {
+     "id": "p6",
+     "type": "num",
+     "prompt": "解 $#log x + #log(x + 3) = 1$。",
+     "label": "$x$",
+     "answer": 2.0,
+     "hints": [
+      "起始值要用正數（例如 1），因為 $#log x$ 中 $x > 0$。",
+      "SOLVE 得 $x = 2$。代入檢查：$#log 2 + #log 5 = #log 10 = 1$。"
+     ],
+     "solution": [
+      "$x(x + 3) = 10$",
+      "$x = 2$ 或 $x = -5$（捨去，因 $x > 0$）",
+      "$x = 2$"
+     ],
+     "level": 3,
+     "wrong": [
+      {
+       "v": [
+        -5
+       ],
+       "msg": "$#log x$ 中 $x$ 必須是正數，$-5$ 要捨去。"
+      }
+     ],
+     "twin": {
+      "prompt": "解 $#log x + #log(x - 1) = #log 6$。",
+      "hints": [
+       "起始值用 2 或以上，因為 $x - 1 > 0$。",
+       "$x(x - 1) = 6$。"
+      ],
+      "solution": [
+       "$x(x - 1) = 6$",
+       "$x = 3$ 或 $x = -2$（捨去）"
+      ],
+      "answer": 3.0
+     }
+    },
+    {
+     "id": "p7",
+     "type": "num",
+     "prompt": "求滿足 $1.5^n > 1000$ 的最小整數 $n$。",
+     "label": "$n$",
+     "answer": 18,
+     "hints": [
+      "先 SOLVE $1.5^X = 1000$。",
+      "得 $X = 17.03662076$…，$n$ 要比它大的最小整數。"
+     ],
+     "solution": [
+      "$1.5^X = 1000$ 時 $X = 17.03662076$…",
+      "所以最小整數 $n = 18$"
+     ],
+     "level": 4,
+     "wrong": [
+      {
+       "v": [
+        17
+       ],
+       "msg": "$1.5^{17} #approx 985.3$，未超過 1000。要向上取整數。"
+      }
+     ],
+     "twin": {
+      "prompt": "求滿足 $1.2^n > 50$ 的最小整數 $n$。",
+      "hints": [
+       "SOLVE $1.2^X = 50$。",
+       "取比答案大的最小整數。"
+      ],
+      "solution": [
+       "$X = 21.45672226$…",
+       "$n = 22$"
+      ],
+      "answer": 22
+     }
+    },
+    {
+     "id": "p8",
+     "type": "num",
+     "prompt": "解方程 $4x^2 + 3x - 9 = 0$，求負數根，準確至三位有效數字。",
+     "label": "負數根",
+     "answer": -1.92,
+     "hints": [
+      "SOLVE 只會給出一個根，哪一個要看起始值。",
+      "用負數（例如 −5）作起始值。"
+     ],
+     "solution": [
+      "SOLVE（起始值 −5）：$x = −1.92116461$…",
+      "$x #approx −1.92$"
+     ],
+     "level": 4,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        1.17
+       ],
+       "msg": "這是正數根。換一個負數起始值再 SOLVE。"
+      }
+     ],
+     "twin": {
+      "prompt": "解方程 $3x^2 + 4x - 6 = 0$，求負數根，準確至三位有效數字。",
+      "hints": [
+       "用負數作起始值。",
+       "SOLVE 後四捨五入。"
+      ],
+      "solution": [
+       "$x = −2.230138587$…",
+       "$x #approx −2.23$"
+      ],
+      "answer": -2.23,
+      "tol": 0.0050000010000000004
+     }
+    }
+   ]
+  },
+  {
+   "id": "stat",
+   "title": "SD 模式：平均數和標準差",
+   "tag": "卷二幾乎每年都要求標準差",
+   "concept": {
+    "big": "用 SD 模式輸入數據，平均數和標準差一次求出。DSE 的標準差是 σx（除以 $n$），不是 sx。",
+    "points": [
+     "[[MODE]] [[4]] 進入 SD 模式。輸入前先清除舊數據：[[SHIFT]] [[9]]（CLR）[[1]]（Stat）[[=]]。",
+     "逐個輸入：數值 [[DT]]（[[DT]] 就是 [[M+]] 鍵）。有頻數：數值 [[SHIFT]] [[,]]（即「;」）頻數 [[DT]]。",
+     "平均數：[[SHIFT]] [[2]]（S-VAR）[[1]] [[=]]。標準差：[[SHIFT]] [[2]] [[2]] [[=]]，即 σx。",
+     "S-VAR 的第 3 項 sx（xσn−1）是樣本標準差，DSE 不用。選錯是最常見的失分位。",
+     "分組數據：用組中點代替每組的數值，例如 10 – 19 的組中點是 14.5。",
+     "做完記得 [[MODE]] [[1]] 返回 COMP 模式，否則之後按 [[M+]] 會變成輸入數據。"
+    ],
+    "recipe": [
+     "MODE 4（SD）",
+     "清除舊數據（SHIFT 9 1 =）",
+     "輸入數據（有頻數用 ;）",
+     "S-VAR 1 平均數、S-VAR 2 標準差 σx",
+     "MODE 1 返回 COMP"
+    ]
+   },
+   "worked": {
+    "q": "求數據 3，5，8，8，11 的平均數和標準差，準確至三位有效數字。",
+    "steps": [
+     {
+      "label": "進入 SD 模式並清除舊數據",
+      "m": "[[MODE]] [[4]]，[[SHIFT]] [[9]] [[1]] [[=]]"
+     },
+     {
+      "label": "輸入數據",
+      "m": "3 [[DT]] 5 [[DT]] 8 [[DT]] 8 [[DT]] 11 [[DT]]",
+      "why": "兩個 8 也可以輸入成 8 [[SHIFT]] [[,]] 2 [[DT]]。"
+     },
+     {
+      "label": "平均數",
+      "m": "[[SHIFT]] [[2]] [[1]] [[=]]：$#bar{x} = 7$"
+     },
+     {
+      "label": "標準差",
+      "m": "[[SHIFT]] [[2]] [[2]] [[=]]：σx $= 2.75680975$… $#approx 2.76$",
+      "why": "選第 2 項 σx，不是第 3 項 sx。"
+     }
+    ]
+   },
+   "faded": {
+    "q": "求下表數據的標準差，準確至三位有效數字。",
+    "figure": "<table class=\"data\"><tr><th><span class=\"m\"><i>x</i></span></th><td>1</td><td>2</td><td>3</td><td>4</td></tr><tr><th>頻數</th><td>3</td><td>5</td><td>8</td><td>4</td></tr></table>",
+    "steps": [
+     {
+      "label": "輸入「數值 ; 頻數」",
+      "m": "1 [[SHIFT]] [[,]] 3 [[DT]]\n2 [[SHIFT]] [[,]] 5 [[DT]]\n3 [[SHIFT]] [[,]] 8 [[DT]]\n4 [[SHIFT]] [[,]] 4 [[DT]]"
+     },
+     {
+      "label": "平均數",
+      "m": "$#bar{x} = 2.65$"
+     },
+     {
+      "label": "標準差",
+      "blank": {
+       "type": "num",
+       "prompt": "按 S-VAR 2，σx 是多少？（準確至三位有效數字）",
+       "label": "σx",
+       "answer": 0.963,
+       "tol": 0.000500001,
+       "wrong": [
+        {
+         "v": [
+          0.988
+         ],
+         "msg": "這是 sx。要選第 2 項 σx。"
+        },
+        {
+         "v": [
+          1.12
+         ],
+         "msg": "沒有輸入頻數。"
+        }
+       ],
+       "hints": [
+        "[[SHIFT]] [[2]] [[2]] [[=]]。",
+        "四捨五入至三位有效數字。"
+       ]
+      }
+     }
+    ]
+   },
+   "practice": [
+    {
+     "id": "p1",
+     "type": "num",
+     "prompt": "求數據 12，15，17，20，26 的標準差，準確至三位有效數字。",
+     "label": "標準差",
+     "answer": 4.77,
+     "hints": [
+      "[[MODE]] [[4]] 進入 SD 模式，先清除舊數據，再逐個輸入：12 [[DT]] 15 [[DT]] …",
+      "[[SHIFT]] [[2]]（S-VAR）[[2]] [[=]] 得 σx。"
+     ],
+     "solution": [
+      "σx $= 4.774934555$…",
+      "標準差 $#approx 4.77$"
+     ],
+     "level": 2,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        5.34
+       ],
+       "msg": "這是 sx（xσn−1，樣本標準差）。DSE 的標準差用 σx。"
+      },
+      {
+       "v": [
+        22.8
+       ],
+       "msg": "這是方差（標準差的平方）。"
+      }
+     ],
+     "twin": {
+      "prompt": "求數據 8，11，13，18，20 的標準差，準確至三位有效數字。",
+      "hints": [
+       "SD 模式逐個輸入。",
+       "S-VAR 2 是 σx。"
+      ],
+      "solution": [
+       "σx $= 4.427188724$…",
+       "$#approx 4.43$"
+      ],
+      "wrong": [
+       {
+        "v": [
+         4.95
+        ],
+        "msg": "這是 sx（樣本標準差）。DSE 用 σx。"
+       }
+      ],
+      "answer": 4.43,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p2",
+     "type": "num",
+     "prompt": "下表顯示某班學生每星期看電影的次數。求平均數，準確至三位有效數字。",
+     "label": "平均數",
+     "answer": 2.97,
+     "hints": [
+      "有頻數：數值 [[SHIFT]] [[,]]（即「;」）頻數 [[DT]]，例如 1 [[SHIFT]] [[,]] 4 [[DT]]。",
+      "[[SHIFT]] [[2]] [[1]] [[=]] 得平均數 $#bar{x}$。"
+     ],
+     "solution": [
+      "$#bar{x} = 2.966666667$…",
+      "平均數 $#approx 2.97$"
+     ],
+     "level": 2,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        3.0
+       ],
+       "msg": "要計頻數，不是把 1 至 5 平均。"
+      }
+     ],
+     "figure": "<table class=\"data\"><tr><th>次數</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr><tr><th>頻數</th><td>4</td><td>7</td><td>9</td><td>6</td><td>4</td></tr></table>",
+     "twin": {
+      "prompt": "下表顯示某班學生上星期遲到的次數。求平均數，準確至三位有效數字。",
+      "figure": "<table class=\"data\"><tr><th>次數</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td></tr><tr><th>頻數</th><td>3</td><td>8</td><td>10</td><td>5</td><td>4</td></tr></table>",
+      "hints": [
+       "數值 ; 頻數 DT。",
+       "S-VAR 1。"
+      ],
+      "solution": [
+       "$#bar{x} = 1.966666667$…",
+       "$#approx 1.97$"
+      ],
+      "wrong": [
+       {
+        "v": [
+         2.0
+        ],
+        "msg": "要計頻數，不是把 0 至 4 平均。"
+       }
+      ],
+      "answer": 1.97,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p3",
+     "type": "num",
+     "prompt": "求下表數據的標準差，準確至三位有效數字。",
+     "label": "標準差",
+     "answer": 9.1,
+     "hints": [
+      "數值 [[SHIFT]] [[,]] 頻數 [[DT]]，四組輸入完再求 σx。",
+      "輸入後可以用 [[SHIFT]] [[1]]（S-SUM）[[3]] 查看 $n$，檢查是否 20。"
+     ],
+     "solution": [
+      "$n = 20$，σx $= 9.096702699$…",
+      "標準差 $#approx 9.1$"
+     ],
+     "level": 3,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        9.33
+       ],
+       "msg": "這是 sx（xσn−1）。DSE 用 σx。"
+      },
+      {
+       "v": [
+        11.2
+       ],
+       "msg": "沒有輸入頻數：每個數值要用「;」配上頻數。"
+      }
+     ],
+     "figure": "<table class=\"data\"><tr><th><span class=\"m\"><i>x</i></span></th><td>10</td><td>20</td><td>30</td><td>40</td></tr><tr><th>頻數</th><td>5</td><td>9</td><td>4</td><td>2</td></tr></table>",
+     "twin": {
+      "prompt": "求下表數據的標準差，準確至三位有效數字。",
+      "figure": "<table class=\"data\"><tr><th><span class=\"m\"><i>x</i></span></th><td>2</td><td>4</td><td>6</td><td>8</td></tr><tr><th>頻數</th><td>6</td><td>3</td><td>8</td><td>3</td></tr></table>",
+      "hints": [
+       "數值 ; 頻數 DT。",
+       "S-VAR 2。"
+      ],
+      "solution": [
+       "σx $= 2.13541565$…",
+       "$#approx 2.14$"
+      ],
+      "wrong": [
+       {
+        "v": [
+         2.19
+        ],
+        "msg": "這是 sx，要用 σx。"
+       }
+      ],
+      "answer": 2.14,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p4",
+     "type": "num",
+     "prompt": "下表顯示 20 名學生某次測驗的分數分佈。利用組中點，估計分數的標準差，準確至三位有效數字。",
+     "label": "標準差",
+     "answer": 9.21,
+     "hints": [
+      "組中點：4.5，14.5，24.5，34.5。",
+      "輸入「組中點 ; 頻數」，再求 σx。"
+     ],
+     "solution": [
+      "組中點 4.5，14.5，24.5，34.5",
+      "σx $= 9.20597632$…",
+      "標準差 $#approx 9.21$"
+     ],
+     "level": 3,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        7.06
+       ],
+       "msg": "少了一組：四組都要輸入。"
+      }
+     ],
+     "figure": "<table class=\"data\"><tr><th>分數</th><td>0 – 9</td><td>10 – 19</td><td>20 – 29</td><td>30 – 39</td></tr><tr><th>人數</th><td>3</td><td>8</td><td>6</td><td>3</td></tr></table>",
+     "twin": {
+      "prompt": "下表顯示 20 名學生某次測驗的分數分佈。利用組中點，估計分數的標準差，準確至三位有效數字。",
+      "figure": "<table class=\"data\"><tr><th>分數</th><td>40 – 49</td><td>50 – 59</td><td>60 – 69</td><td>70 – 79</td></tr><tr><th>人數</th><td>2</td><td>7</td><td>9</td><td>2</td></tr></table>",
+      "hints": [
+       "組中點：44.5，54.5，64.5，74.5。",
+       "組中點 ; 頻數 DT。"
+      ],
+      "solution": [
+       "σx $= 8.04673847$…",
+       "$#approx 8.05$"
+      ],
+      "answer": 8.05,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p5",
+     "type": "mc",
+     "prompt": "小明用計算機求一組數據的標準差，屏幕顯示 σx $= 4.12$，sx $= 4.37$。在 DSE 中，這組數據的標準差是多少？",
+     "options": [
+      {
+       "t": "4.12",
+       "ok": true
+      },
+      {
+       "t": "4.37",
+       "why": "sx（xσn−1）是樣本標準差，DSE 不用。"
+      },
+      {
+       "t": "4.245",
+       "why": "不是取兩者的平均。"
+      },
+      {
+       "t": "16.97",
+       "why": "這是方差，不是標準差。"
+      }
+     ],
+     "hints": [
+      "DSE 的標準差公式是除以 $n$。",
+      "σx 除以 $n$；sx 除以 $n - 1$。"
+     ],
+     "solution": [
+      "DSE 用 σx（除以 $n$）",
+      "標準差 $= 4.12$"
+     ],
+     "level": 3,
+     "twin": {
+      "prompt": "計算機屏幕顯示 σx $= 2.85$，sx $= 3.01$。在 DSE 中，這組數據的標準差是多少？",
+      "hints": [
+       "DSE 除以 $n$。",
+       "選 σx。"
+      ],
+      "solution": [
+       "σx $= 2.85$"
+      ],
+      "options": [
+       {
+        "t": "2.85",
+        "ok": true
+       },
+       {
+        "t": "3.01",
+        "why": "sx 是樣本標準差，DSE 不用。"
+       },
+       {
+        "t": "2.93",
+        "why": "不是平均。"
+       },
+       {
+        "t": "8.12",
+        "why": "這是方差。"
+       }
+      ]
+     }
+    },
+    {
+     "id": "p6",
+     "type": "num",
+     "prompt": "某組數據是 52，60，64，71，78。現加入兩個數據 55 和 90。求新數據組的標準差，準確至三位有效數字。",
+     "label": "新的標準差",
+     "answer": 12.5,
+     "hints": [
+      "在 SD 模式中，舊數據不用清除，直接再輸入 55 [[DT]] 90 [[DT]]。",
+      "再按 S-VAR 2。"
+     ],
+     "solution": [
+      "7 個數據的 σx $= 12.49489692$…",
+      "新的標準差 $#approx 12.5$"
+     ],
+     "level": 4,
+     "tol": 0.050000001,
+     "wrong": [
+      {
+       "v": [
+        8.94
+       ],
+       "msg": "這是加入數據前的標準差。"
+      }
+     ],
+     "twin": {
+      "prompt": "某組數據是 34，40，45，47，59。現加入兩個數據 30 和 62。求新數據組的標準差，準確至三位有效數字。",
+      "hints": [
+       "繼續輸入 30 DT 62 DT。",
+       "S-VAR 2。"
+      ],
+      "solution": [
+       "σx $= 11.0804111$…",
+       "$#approx 11.1$"
+      ],
+      "wrong": [
+       {
+        "v": [
+         8.32
+        ],
+        "msg": "這是加入數據前的標準差。"
+       }
+      ],
+      "answer": 11.1,
+      "tol": 0.050000001
+     }
+    },
+    {
+     "id": "p7",
+     "type": "num",
+     "prompt": "8 名學生的測驗分數是 48，55，61，66，70，74，80，86。求得 80 分的學生的標準分，準確至三位有效數字。",
+     "label": "標準分",
+     "answer": 1.05,
+     "hints": [
+      "先用 SD 模式求平均數和 σx。",
+      "標準分 $= #frac{80 - #bar{x}}{#sigma}$；可以直接輸入 (80 − [[SHIFT]][[2]][[1]]) ÷ [[SHIFT]][[2]][[2]]，不用抄下中間數值。"
+     ],
+     "solution": [
+      "$#bar{x} = 67.5$，σx $= 11.87434209$…",
+      "標準分 $= #frac{80 - 67.5}{11.874342} #approx 1.05$"
+     ],
+     "level": 4,
+     "tol": 0.0050000010000000004,
+     "wrong": [
+      {
+       "v": [
+        0.985
+       ],
+       "msg": "分母要用 σx，不是 sx。"
+      }
+     ],
+     "twin": {
+      "prompt": "8 名學生的測驗分數是 35，42，50，57，63，68，72，81。求得 72 分的學生的標準分，準確至三位有效數字。",
+      "hints": [
+       "SD 模式求 $#bar{x}$ 和 σx。",
+       "$#frac{72 - #bar{x}}{#sigma}$。"
+      ],
+      "solution": [
+       "$#bar{x} = 58.5$，σx $= 14.56880228$…",
+       "$#approx 0.927$"
+      ],
+      "answer": 0.927,
+      "tol": 0.000500001
+     }
+    },
+    {
+     "id": "p8",
+     "type": "num",
+     "prompt": "求數據 3，7，8，12，15 的方差，準確至三位有效數字。",
+     "label": "方差",
+     "answer": 17.2,
+     "hints": [
+      "方差 = 標準差的平方。",
+      "求出 σx 後按 [[x²]]，或直接用 Ans$^2$。"
+     ],
+     "solution": [
+      "σx $= 4.147288271$…",
+      "方差 $= #sigma^2 = 17.2$"
+     ],
+     "level": 4,
+     "tol": 0.050000001,
+     "wrong": [
+      {
+       "v": [
+        4.15
+       ],
+       "msg": "這是標準差，方差要再平方。"
+      }
+     ],
+     "twin": {
+      "prompt": "求數據 4，6，9，13，18 的方差，準確至三位有效數字。",
+      "hints": [
+       "先求 σx。",
+       "再平方。"
+      ],
+      "solution": [
+       "σx $= 5.019960159$…",
+       "方差 $= 25.2$"
+      ],
+      "answer": 25.2,
+      "tol": 0.050000001
+     }
+    }
+   ]
+  },
+  {
+   "id": "calc",
+   "title": "CALC 和記憶：避免捨入誤差",
+   "tag": "中間值存起來，最後才四捨五入",
+   "concept": {
+    "big": "同一條式要代入幾個數值，用 [[CALC]]；中間答案用記憶（STO）保存，最後一步才四捨五入，就不會有捨入誤差。",
+    "points": [
+     "輸入含 $x$ 的式子（例如 2[[ALPHA]][[X]]$^2$ − 3[[ALPHA]][[X]] + 1），按 [[CALC]]，輸入 $x$ 的值，按 [[=]]。再按 [[CALC]] 可以代入另一個值。",
+     "儲存：[[SHIFT]] [[RCL]]（STO）再按 [[A]]（或 B、C…）。使用時按 [[ALPHA]] [[A]]。",
+     "上一個答案用 [[Ans]]。不要抄下四捨五入後的數字再輸入。",
+     "選擇題可以用 [[CALC]] 把四個選項逐一代入檢查。",
+     "卷一的中間步驟可以寫三位有效數字，但計算時要用計算機保存的完整數值，否則最後答案可能差 0.1，失去答案分。"
+    ],
+    "recipe": [
+     "輸入含 X 的式子",
+     "CALC，輸入數值，=",
+     "中間答案 STO 到 A",
+     "下一步用 ALPHA A",
+     "最後一步才四捨五入"
+    ]
+   },
+   "worked": {
+    "q": "在 $#triangle ABC$ 中，$BC = 5$，$CA = 8$，$#angle C = 40°$。求 $AB$ 和 $#angle B$，準確至三位有效數字。",
+    "steps": [
+     {
+      "label": "餘弦公式求 $AB$",
+      "m": "$AB = #sqrt{5^2 + 8^2 - 2(5)(8)#cos 40°} = 5.264640971$…",
+      "why": "寫答案時是 5.26，但計算機裏的數要保留。"
+     },
+     {
+      "label": "存入記憶 A",
+      "m": "[[SHIFT]] [[RCL]] [[A]]"
+     },
+     {
+      "label": "正弦公式求 $#angle B$",
+      "m": "$#sin B = #frac{8 #sin 40°}{AB}$，$#angle B = 77.62394377$…$#approx 77.6°$",
+      "why": "$AB$ 用 [[ALPHA]] [[A]] 輸入。"
+     },
+     {
+      "label": "比較：用四捨五入後的 $AB$",
+      "m": "用 $AB = 5.26$ 計算得 $#angle B #approx 77.856°$",
+      "why": "兩個答案不一定相同。保存完整數值才最穩妥。"
+     }
+    ]
+   },
+   "faded": {
+    "q": "設 $f(x) = x^3 - 4x + 2$。用 [[CALC]] 求 $f(1.5)$ 和 $f(-2.3)$。",
+    "steps": [
+     {
+      "label": "輸入式子",
+      "m": "[[ALPHA]][[X]]$^3$ − 4[[ALPHA]][[X]] + 2"
+     },
+     {
+      "label": "代入 1.5",
+      "m": "[[CALC]] 1.5 [[=]]：$f(1.5) = −0.625$"
+     },
+     {
+      "label": "代入 −2.3",
+      "blank": {
+       "type": "num",
+       "prompt": "再按 [[CALC]]，輸入 −2.3，$f(-2.3)$ 是多少？",
+       "label": "$f(-2.3)$",
+       "answer": -0.967,
+       "wrong": [
+        {
+         "v": [
+          4.967
+         ],
+         "msg": "輸入了 2.3。負數要用 [[(−)]] 鍵。"
+        }
+       ],
+       "hints": [
+        "$(-2.3)^3 = -12.167$。",
+        "$-12.167 + 9.2 + 2$。"
+       ]
+      }
+     }
+    ]
+   },
+   "practice": [
+    {
+     "id": "p1",
+     "type": "num",
+     "prompt": "設 $f(x) = 2x^2 - 5x + 3$。求 $f(3.7)$。",
+     "label": "$f(3.7)$",
+     "answer": 11.88,
+     "hints": [
+      "輸入 2[[ALPHA]][[X]]$^2$ − 5[[ALPHA]][[X]] + 3，按 [[CALC]]。",
+      "計算機問 X? 時輸入 3.7，按 [[=]]。"
+     ],
+     "solution": [
+      "$f(3.7) = 2(3.7)^2 - 5(3.7) + 3 = 11.88$"
+     ],
+     "level": 2,
+     "twin": {
+      "prompt": "設 $f(x) = 3x^2 + 2x - 4$。求 $f(-2.4)$。",
+      "hints": [
+       "輸入式子後按 CALC。",
+       "X? 輸入 −2.4（用 [[(−)]] 鍵）。"
+      ],
+      "solution": [
+       "$f(-2.4) = 8.48$"
+      ],
+      "wrong": [
+       {
+        "v": [
+         18.08
+        ],
+        "msg": "輸入了 2.4，忘記負號。負數要用 [[(−)]] 鍵。"
+       }
+      ],
+      "answer": 8.48
+     }
+    },
+    {
+     "id": "p2",
+     "type": "mc",
+     "prompt": "以下哪一個數值最接近方程 $x^3 - 3x - 1 = 0$ 的一個根？",
+     "options": [
+      {
+       "t": "1.88",
+       "ok": true
+      },
+      {
+       "t": "1.52",
+       "why": "代入：$1.52^3 - 3(1.52) - 1 #approx −2.048$，離 0 較遠。"
+      },
+      {
+       "t": "2.15",
+       "why": "代入：約 2.488。"
+      },
+      {
+       "t": "0.35",
+       "why": "代入：約 −2.007。"
+      }
+     ],
+     "hints": [
+      "輸入 [[ALPHA]][[X]]$^3$ − 3[[ALPHA]][[X]] − 1，用 [[CALC]] 逐個代入四個選項。",
+      "最接近 0 的就是答案。"
+     ],
+     "solution": [
+      "代入 1.88：約 0.005，最接近 0"
+     ],
+     "level": 2,
+     "twin": {
+      "prompt": "以下哪一個數值最接近方程 $x^3 + 2x - 5 = 0$ 的根？",
+      "hints": [
+       "用 CALC 逐個代入。",
+       "最接近 0。"
+      ],
+      "solution": [
+       "代入 1.33：約 0.013"
+      ],
+      "options": [
+       {
+        "t": "1.33",
+        "ok": true
+       },
+       {
+        "t": "1.10",
+        "why": "代入：約 −1.469。"
+       },
+       {
+        "t": "1.62",
+        "why": "代入：約 2.492。"
+       },
+       {
+        "t": "0.87",
+        "why": "代入：約 −2.601。"
+       }
+      ]
+     }
+    },
+    {
+     "id": "p3",
+     "type": "num",
+     "prompt": "把 12 000 元存入銀行，年利率 3.5%，每月複利計算一次。求 3 年後的利息，準確至最接近的元。",
+     "label": "利息（元）",
+     "answer": 1326,
+     "hints": [
+      "本利和 $= 12000(1 + #frac{3.5#%}{12})^{36}$，整條式一次輸入。",
+      "再減 12000。不要中途四捨五入 $1 + #frac{0.035}{12}$。"
+     ],
+     "solution": [
+      "本利和 $= 12000(1 + #frac{0.035}{12})^{36} = 13326.4905$…",
+      "利息 $#approx 1326$ 元"
+     ],
+     "level": 3,
+     "wrong": [
+      {
+       "v": [
+        1328
+       ],
+       "msg": "中途把 $1 + #frac{0.035}{12}$ 四捨五入了，答案有誤差。"
+      },
+      {
+       "v": [
+        13326
+       ],
+       "msg": "這是本利和，利息要減去本金。"
+      }
+     ],
+     "twin": {
+      "prompt": "把 20 000 元存入銀行，年利率 4.2%，每季複利計算一次。求 5 年後的利息，準確至最接近的元。",
+      "hints": [
+       "$20000(1 + #frac{0.042}{4})^{20}$。",
+       "減 20000。"
+      ],
+      "solution": [
+       "本利和 $= 24646.5623$…",
+       "利息 $#approx 4647$ 元"
+      ],
+      "answer": 4647
+     }
+    },
+    {
+     "id": "p4",
+     "type": "num",
+     "prompt": "在 $#triangle ABC$ 中，$BC = 7$，$CA = 9$，$#angle C = 48°$。先求 $AB$，再求 $#angle A$，準確至三位有效數字。",
+     "label": "$#angle A$（度）",
+     "answer": 50.3,
+     "hints": [
+      "$AB^2 = 7^2 + 9^2 - 2(7)(9)#cos 48°$。求出 $AB$ 後按 [[SHIFT]] [[RCL]]（STO）[[A]] 存起來。",
+      "正弦公式：$#sin A = #frac{7 #sin 48°}{AB}$，$AB$ 用 [[ALPHA]] [[A]]。"
+     ],
+     "solution": [
+      "$AB = 6.759404086$…（存入 A）",
+      "$#sin A = #frac{7 #sin 48°}{AB}$",
+      "$#angle A = 50.31766941$… $#approx 50.3°$"
+     ],
+     "level": 3,
+     "tol": 0.050000001,
+     "twin": {
+      "prompt": "在 $#triangle PQR$ 中，$QR = 6$，$RP = 10$，$#angle R = 55°$。先求 $PQ$，再求 $#angle P$，準確至三位有效數字。",
+      "hints": [
+       "餘弦公式求 $PQ$，存入 A。",
+       "$#sin P = #frac{6 #sin 55°}{PQ}$。"
+      ],
+      "solution": [
+       "$PQ = 8.195781088$…",
+       "$#angle P = 36.84756165$… $#approx 36.8°$"
+      ],
+      "answer": 36.8,
+      "tol": 0.050000001
+     }
+    },
+    {
+     "id": "p5",
+     "type": "num",
+     "prompt": "設 $f(x) = #frac{x^2 + 1}{x - 2}$。求 $f(2.5) + f(-1.5)$，準確至三位有效數字。",
+     "label": "答案",
+     "answer": 13.6,
+     "hints": [
+      "輸入 $f(x)$ 後用 [[CALC]] 分別代入 2.5 和 −1.5。",
+      "第一個答案先 STO 到 A，或寫下完整數值再相加。"
+     ],
+     "solution": [
+      "$f(2.5) = 14.5$，$f(-1.5) = −0.9285714286$…",
+      "和 $#approx 13.6$"
+     ],
+     "level": 3,
+     "tol": 0.050000001,
+     "twin": {
+      "prompt": "設 $f(x) = #frac{2x - 3}{x^2 + 1}$。求 $f(1.5) - f(-0.5)$，準確至三位有效數字。",
+      "hints": [
+       "CALC 代入 1.5 和 −0.5。",
+       "相減。"
+      ],
+      "solution": [
+       "$f(1.5) = 0$，$f(-0.5) = −3.2$",
+       "$#approx 3.2$"
+      ],
+      "answer": 3.2,
+      "tol": 0.0050000010000000004
+     }
+    },
+    {
+     "id": "p6",
+     "type": "num",
+     "prompt": "等比數列的首項是 3，公比是 1.2。求首 10 項之和，準確至三位有效數字。",
+     "label": "首 10 項之和",
+     "answer": 77.9,
+     "hints": [
+      "$S_{10} = #frac{3(1.2^{10} - 1)}{1.2 - 1}$，整條式一次輸入。",
+      "不要先把 $1.2^{10}$ 四捨五入。"
+     ],
+     "solution": [
+      "$S_{10} = #frac{3(1.2^{10} - 1)}{0.2} = 77.87604634$…",
+      "$#approx 77.9$"
+     ],
+     "level": 4,
+     "tol": 0.050000001,
+     "wrong": [
+      {
+       "v": [
+        77.8
+       ],
+       "msg": "先把 $1.2^{10}$ 四捨五入成 6.19，答案有誤差。"
+      }
+     ],
+     "twin": {
+      "prompt": "等比數列的首項是 5，公比是 1.15。求首 12 項之和，準確至三位有效數字。",
+      "hints": [
+       "$#frac{5(1.15^{12} - 1)}{0.15}$。",
+       "一次輸入。"
+      ],
+      "solution": [
+       "$S_{12} = 145.0083368$…",
+       "$#approx 145$"
+      ],
+      "answer": 145.0,
+      "tol": 0.500000001
+     }
+    },
+    {
+     "id": "p7",
+     "type": "num",
+     "prompt": "已知 $#sin #theta = #frac{2}{3}$，其中 $0° < #theta < 90°$。求 $#theta$，準確至三位有效數字。",
+     "label": "$#theta$（度）",
+     "answer": 41.8,
+     "hints": [
+      "直接按 [[SHIFT]] [[sin]] ( 2 ÷ 3 ) [[=]]。",
+      "不要先把 $#frac{2}{3}$ 化成 0.67。"
+     ],
+     "solution": [
+      "$#theta = #sin^{-1} #frac{2}{3} = 41.8103149$…°",
+      "$#theta #approx 41.8°$"
+     ],
+     "level": 4,
+     "tol": 0.050000001,
+     "wrong": [
+      {
+       "v": [
+        42.1
+       ],
+       "msg": "先把 $#frac{2}{3}$ 四捨五入成 0.67，答案有誤差。"
+      }
+     ],
+     "twin": {
+      "prompt": "已知 $#cos #theta = #frac{5}{9}$，其中 $0° < #theta < 90°$。求 $#theta$，準確至三位有效數字。",
+      "hints": [
+       "[[SHIFT]] [[cos]] ( 5 ÷ 9 )。",
+       "不要先化成 0.56。"
+      ],
+      "solution": [
+       "$#theta = 56.2510114$…°",
+       "$#approx 56.3°$"
+      ],
+      "wrong": [
+       {
+        "v": [
+         55.9
+        ],
+        "msg": "先把 $#frac{5}{9}$ 四捨五入成 0.56，答案有誤差。"
+       }
+      ],
+      "answer": 56.3,
+      "tol": 0.050000001
+     }
+    },
+    {
+     "id": "p8",
+     "type": "num",
+     "prompt": "一個球體的大圓面積是 50 cm²。求球體的體積，準確至三位有效數字。",
+     "label": "體積（cm³）",
+     "answer": 266.0,
+     "hints": [
+      "$#pi r^2 = 50$，$r = #sqrt{#frac{50}{#pi}}$，按 [[SHIFT]] [[RCL]] [[A]] 存入 A。",
+      "體積 $= #frac{4}{3}#pi r^3$，$r$ 用 [[ALPHA]] [[A]]。"
+     ],
+     "solution": [
+      "$r = #sqrt{#frac{50}{#pi}} = 3.989422804$…（存入 A）",
+      "體積 $= #frac{4}{3}#pi r^3 = 265.9615203$…",
+      "$#approx 266$ cm³"
+     ],
+     "level": 4,
+     "tol": 0.500000001,
+     "twin": {
+      "prompt": "一個球體的大圓面積是 80 cm²。求球體的體積，準確至三位有效數字。",
+      "hints": [
+       "$r = #sqrt{#frac{80}{#pi}}$，存入 A。",
+       "$#frac{4}{3}#pi A^3$。"
+      ],
+      "solution": [
+       "$r = 5.046265044$…",
+       "體積 $= 538.2682714$… $#approx 538$ cm³"
+      ],
+      "wrong": [
+       {
+        "v": [
+         539.0
+        ],
+        "msg": "先把 $r$ 四捨五入成 5.05，答案有誤差。"
+       }
+      ],
+      "answer": 538.0,
+      "tol": 0.500000001
+     }
+    }
+   ]
+  }
+ ]
 });
 
 /* 基座各站的進階題（DSE 卷二甲部中段至卷一甲(2) 程度）
@@ -50052,7 +51342,7 @@ function coordFig(o) {
       "solution": [
        "$y = #frac{10}{3}$"
       ],
-      "after": "$y$ 截距 = #frac{10}{3}$"
+      "after": "$#frac{10}{3}$"
      },
      {
       "type": "mc",
@@ -67096,7 +68386,7 @@ function coordFig(o) {
     "凡是只用這五個數就能算出的量，都可以得出。"
    ],
    "solution": [
-    "I 不✓：框線圖只顯示五個數（最小值、下四分位數、中位數、上四分位數、最大值），不能得出平均數",
+    "I ✗：框線圖只顯示五個數（最小值、下四分位數、中位數、上四分位數、最大值），不能得出平均數",
     "II ✓：框的左邊就是下四分位數",
     "III ✓：上四分位數 − 下四分位數"
    ],
@@ -67129,7 +68419,7 @@ function coordFig(o) {
     ],
     "solution": [
      "I ✓：最大值 − 最小值",
-     "II 不✓：標準差要用每個數據計算，框線圖不能得出",
+     "II ✗：標準差要用每個數據計算，框線圖不能得出",
      "III ✓：框內的直線就是中位數"
     ]
    }
@@ -70798,7 +72088,7 @@ function coordFig(o) {
     const s = summary(p), P = (D.progress[id] || {}).p || {};
     const mine = D.attempts.filter(a => a.user_id === id).slice().reverse();
     const units = UNITS.map(u => { const n = u.stations.length, d = u.stations.filter(st => P[u.id] && P[u.id][st.id] && P[u.id][st.id].stars > 0).length; return `<div class="row"><span>${h(unitName(u))}</span><span class="mini"><i style="width:${n ? d / n * 100 : 0}%"></i></span><span>${d}/${n}</span></div>`; }).join('');
-    const retry = ((D.progress[id] || {}).retry || []).map(r => { const L = qLabel(r.id); return `<li>${h(L.where)}：${h(r.tag)}${r.kind ? ` <span class="pill">${KINDS[r.kind] || r.kind}</span>` : ''}</li>`; }).join('');
+    const retry = ((D.progress[id] || {}).retry || []).map(r => { const L = qLabel(r.id); return `<li>${h(L.where)}：${h(r.tag)} <span class="pill">${r.stage ? `第 ${r.stage} / 3 次重溫` : '待重做'}</span>${r.kind ? ` <span class="pill">${KINDS[r.kind] || r.kind}</span>` : ''}</li>`; }).join('');
     return `<div class="td-actions"><button class="linkbtn" id="d-back">← 返回學生列表</button></div>
       <section class="td-card"><div class="td-detail-head"><h2>${h(p.display_name || '（未填姓名）')}</h2><span class="note">${h(p.class_name)} · ${h(s.email)}</span>${p.active ? '' : '<span class="pill">已停用</span>'}</div>
         <section class="td-tiles" style="margin-top:12px">
