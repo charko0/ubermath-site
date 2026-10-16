@@ -76653,12 +76653,270 @@ function coordFig(o) {
  "intro": "按近年 DSE 卷一乙部和卷二難題的出題邏輯編寫：每題都在常見題型上加一個轉折，並把陷阱放在考生最常失分的位置。答錯會看到針對陷阱的提示，題目也會放進「錯題再戰」，換數字再試。",
  "practice": [
   {
+   "id": "e2",
+   "level": 4.5,
+   "type": "long",
+   "paper": "卷一乙部",
+   "marks": 10,
+   "ref": "題型參考：DSE 2021 卷一 Q8、2016 卷一 Q11（改編）",
+   "prompt": "圖中，$A$、$B$、$D$、$C$ 是一個圓上的點。$AB$ 的延線與 $CD$ 的延線相交於點 $E$。",
+   "parts": [
+    {
+     "type": "write",
+     "marks": 2,
+     "prompt": "證明 $#triangle ACE #sim #triangle DBE$。",
+     "hints": [
+      "$ABDC$ 是圓內接四邊形；$#angle BDE$ 是它的一個外角。"
+     ],
+     "solution": [
+      "$#angle CAE = #angle BDE$（圓內接四邊形的外角）",
+      "$#angle AEC = #angle DEB$（公共角）",
+      "$#therefore #triangle ACE #sim #triangle DBE$（AAA）"
+     ],
+     "scheme": [
+      "$#angle CAE = #angle BDE$，理由：圓內接四邊形的外角",
+      "$#angle AEC = #angle DEB$，理由：公共角",
+      "結論 $#triangle ACE #sim #triangle DBE$，寫出理由（AAA 或 AA），頂點次序對應"
+     ],
+     "tag": "相似三角形的證明"
+    },
+    {
+     "type": "write",
+     "marks": 2,
+     "prompt": "已知 $AC = 24$ cm，$AE = 32$ cm，$CE = 40$ cm，$BD = 15$ cm。$#triangle ACE$ 是否直角三角形？試解釋你的答案。",
+     "hints": [
+      "比較 $AC^2 + AE^2$ 和 $CE^2$。"
+     ],
+     "solution": [
+      "$AC^2 + AE^2 = 24^2 + 32^2 = 1600$",
+      "$CE^2 = 40^2 = 1600$",
+      "$AC^2 + AE^2 = CE^2$，所以 $#triangle ACE$ 是直角三角形，$#angle CAE = 90#deg$（畢氏定理的逆定理）"
+     ],
+     "scheme": [
+      "計算 $AC^2 + AE^2$ 和 $CE^2$",
+      "指出兩者相等，結論：是直角三角形（$#angle CAE = 90#deg$），理由：畢氏定理的逆定理"
+     ],
+     "tag": "判斷直角三角形"
+    },
+    {
+     "type": "num",
+     "marks": 2,
+     "prompt": "求 $#triangle BDE$ 的面積。",
+     "label": "面積（cm²）",
+     "answer": 150.0,
+     "wrong": [
+      {
+       "v": [
+        240.0
+       ],
+       "msg": "面積的比是相似比的平方，不是相似比本身。",
+       "tag": "相似比"
+      },
+      {
+       "v": [
+        384.0
+       ],
+       "msg": "這是 $#triangle ACE$ 的面積。",
+       "tag": "對應三角形"
+      }
+     ],
+     "hints": [
+      "由 (a)，$#angle BDE = #angle CAE$。",
+      "相似比 $#frac{BD}{AC} = #frac{15}{24}$，先求 $DE$。"
+     ],
+     "solution": [
+      "由 (a)，$#frac{DE}{AE} = #frac{BD}{AC}$，$DE = 32 #times #frac{15}{24} = 20$ cm",
+      "由 (a) 和 (b)，$#angle BDE = #angle CAE = 90#deg$",
+      "$#triangle BDE$ 的面積 $= #frac{1}{2}(15)(20) = 150$ cm$^2$"
+     ]
+    },
+    {
+     "type": "write",
+     "marks": 2,
+     "prompt": "$BC$ 是否這個圓的直徑？試解釋你的答案。",
+     "hints": [
+      "$#angle BAC$ 和 $#angle CAE$ 有甚麼關係？"
+     ],
+     "solution": [
+      "$A$、$B$、$E$ 共線，所以 $#angle BAC = #angle CAE = 90#deg$（由 (b)）",
+      "$#angle BAC$ 是 $BC$ 所對的圓周角，而它是 $90#deg$",
+      "所以 $BC$ 是圓的直徑（半圓上的圓周角的逆定理）"
+     ],
+     "scheme": [
+      "指出 $#angle BAC = 90#deg$（$A$、$B$、$E$ 共線及 (b) 的結果）",
+      "結論：$BC$ 是直徑，理由：半圓上的圓周角的逆定理"
+     ],
+     "tag": "判斷直徑"
+    },
+    {
+     "type": "num",
+     "marks": 2,
+     "prompt": "求這個圓的半徑。",
+     "label": "半徑（cm）",
+     "answer": 12.5,
+     "wrong": [
+      {
+       "v": [
+        25.0
+       ],
+       "msg": "$BC$ 是直徑，半徑是它的一半。",
+       "tag": "直徑與半徑"
+      },
+      {
+       "v": [
+        20.0
+       ],
+       "msg": "$CE$ 不是直徑：$E$ 在圓外。",
+       "tag": "無根據的假設"
+      }
+     ],
+     "hints": [
+      "先求 $BE$，再求 $AB$。",
+      "用 (d)：$BC$ 是直徑。"
+     ],
+     "solution": [
+      "由 (a)，$#frac{BE}{CE} = #frac{BD}{AC}$，$BE = 40 #times #frac{15}{24} = 25$ cm",
+      "$AB = AE - BE = 32 - 25 = 7$ cm",
+      "$BC = #sqrt{AB^2 + AC^2} = #sqrt{7^2 + 24^2} = 25$ cm",
+      "半徑 $= #frac{BC}{2} = #frac{25}{2}$ cm"
+     ],
+     "after": "$#frac{25}{2}$"
+    }
+   ],
+   "twin": {
+    "prompt": "圖中，$A$、$B$、$D$、$C$ 是一個圓上的點。$AB$ 的延線與 $CD$ 的延線相交於點 $E$。",
+    "parts": [
+     {
+      "type": "write",
+      "marks": 2,
+      "prompt": "證明 $#triangle ACE #sim #triangle DBE$。",
+      "hints": [
+       "$ABDC$ 是圓內接四邊形；$#angle BDE$ 是它的一個外角。"
+      ],
+      "solution": [
+       "$#angle CAE = #angle BDE$（圓內接四邊形的外角）",
+       "$#angle AEC = #angle DEB$（公共角）",
+       "$#therefore #triangle ACE #sim #triangle DBE$（AAA）"
+      ],
+      "scheme": [
+       "$#angle CAE = #angle BDE$，理由：圓內接四邊形的外角",
+       "$#angle AEC = #angle DEB$，理由：公共角",
+       "結論 $#triangle ACE #sim #triangle DBE$，寫出理由（AAA 或 AA），頂點次序對應"
+      ],
+      "tag": "相似三角形的證明"
+     },
+     {
+      "type": "write",
+      "marks": 2,
+      "prompt": "已知 $AC = 60$ cm，$AE = 80$ cm，$CE = 100$ cm，$BD = 21$ cm。$#triangle ACE$ 是否直角三角形？試解釋你的答案。",
+      "hints": [
+       "比較 $AC^2 + AE^2$ 和 $CE^2$。"
+      ],
+      "solution": [
+       "$AC^2 + AE^2 = 60^2 + 80^2 = 10000$",
+       "$CE^2 = 100^2 = 10000$",
+       "$AC^2 + AE^2 = CE^2$，所以 $#triangle ACE$ 是直角三角形，$#angle CAE = 90#deg$（畢氏定理的逆定理）"
+      ],
+      "scheme": [
+       "計算 $AC^2 + AE^2$ 和 $CE^2$",
+       "指出兩者相等，結論：是直角三角形（$#angle CAE = 90#deg$），理由：畢氏定理的逆定理"
+      ],
+      "tag": "判斷直角三角形"
+     },
+     {
+      "type": "num",
+      "marks": 2,
+      "prompt": "求 $#triangle BDE$ 的面積。",
+      "label": "面積（cm²）",
+      "answer": 294.0,
+      "wrong": [
+       {
+        "v": [
+         840.0
+        ],
+        "msg": "面積的比是相似比的平方，不是相似比本身。",
+        "tag": "相似比"
+       },
+       {
+        "v": [
+         2400.0
+        ],
+        "msg": "這是 $#triangle ACE$ 的面積。",
+        "tag": "對應三角形"
+       }
+      ],
+      "hints": [
+       "由 (a)，$#angle BDE = #angle CAE$。",
+       "相似比 $#frac{BD}{AC} = #frac{21}{60}$，先求 $DE$。"
+      ],
+      "solution": [
+       "由 (a)，$#frac{DE}{AE} = #frac{BD}{AC}$，$DE = 80 #times #frac{21}{60} = 28$ cm",
+       "由 (a) 和 (b)，$#angle BDE = #angle CAE = 90#deg$",
+       "$#triangle BDE$ 的面積 $= #frac{1}{2}(21)(28) = 294$ cm$^2$"
+      ]
+     },
+     {
+      "type": "write",
+      "marks": 2,
+      "prompt": "$BC$ 是否這個圓的直徑？試解釋你的答案。",
+      "hints": [
+       "$#angle BAC$ 和 $#angle CAE$ 有甚麼關係？"
+      ],
+      "solution": [
+       "$A$、$B$、$E$ 共線，所以 $#angle BAC = #angle CAE = 90#deg$（由 (b)）",
+       "$#angle BAC$ 是 $BC$ 所對的圓周角，而它是 $90#deg$",
+       "所以 $BC$ 是圓的直徑（半圓上的圓周角的逆定理）"
+      ],
+      "scheme": [
+       "指出 $#angle BAC = 90#deg$（$A$、$B$、$E$ 共線及 (b) 的結果）",
+       "結論：$BC$ 是直徑，理由：半圓上的圓周角的逆定理"
+      ],
+      "tag": "判斷直徑"
+     },
+     {
+      "type": "num",
+      "marks": 2,
+      "prompt": "求這個圓的半徑。",
+      "label": "半徑（cm）",
+      "answer": 37.5,
+      "wrong": [
+       {
+        "v": [
+         75.0
+        ],
+        "msg": "$BC$ 是直徑，半徑是它的一半。",
+        "tag": "直徑與半徑"
+       },
+       {
+        "v": [
+         50.0
+        ],
+        "msg": "$CE$ 不是直徑：$E$ 在圓外。",
+        "tag": "無根據的假設"
+       }
+      ],
+      "hints": [
+       "先求 $BE$，再求 $AB$。",
+       "用 (d)：$BC$ 是直徑。"
+      ],
+      "solution": [
+       "由 (a)，$#frac{BE}{CE} = #frac{BD}{AC}$，$BE = 100 #times #frac{21}{60} = 35$ cm",
+       "$AB = AE - BE = 80 - 35 = 45$ cm",
+       "$BC = #sqrt{AB^2 + AC^2} = #sqrt{45^2 + 60^2} = 75$ cm",
+       "半徑 $= #frac{BC}{2} = #frac{75}{2}$ cm"
+      ],
+      "after": "$#frac{75}{2}$"
+     }
+    ]
+   }
+  },
+  {
    "id": "e1",
    "level": 5,
    "type": "mc",
    "paper": "卷二乙部",
    "ref": "題型參考：自編題（圓的基本特性）",
-   "prompt": "$AB$ 和 $CD$ 是同一個圓的兩條弦，互相垂直，相交於圓內的點 $E$。已知 $AE = 4$，$EB = 6$，$CE = 3$。求這個圓的半徑。（題目沒有附圖，請自行繪圖。）",
+   "prompt": "圖中，$AB$ 和 $CD$ 是同一個圓的兩條弦，互相垂直，相交於圓內的點 $E$。已知 $AE = 4$，$EB = 6$，$CE = 3$。求這個圓的半徑。",
    "options": [
     {
      "t": "$#frac{5 #sqrt{5}}{2}$",
@@ -76692,7 +76950,7 @@ function coordFig(o) {
     "半徑$^2 = #frac{125}{4}$，半徑 $= #frac{5 #sqrt{5}}{2}$"
    ],
    "twin": {
-    "prompt": "$AB$ 和 $CD$ 是同一個圓的兩條弦，互相垂直，相交於圓內的點 $E$。已知 $AE = 2$，$EB = 10$，$CE = 4$。求這個圓的半徑。（題目沒有附圖，請自行繪圖。）",
+    "prompt": "圖中，$AB$ 和 $CD$ 是同一個圓的兩條弦，互相垂直，相交於圓內的點 $E$。已知 $AE = 2$，$EB = 10$，$CE = 4$。求這個圓的半徑。",
     "options": [
      {
       "t": "$#frac{#sqrt{145}}{2}$",
@@ -76728,229 +76986,13 @@ function coordFig(o) {
    }
   },
   {
-   "id": "e2",
-   "level": 5.5,
-   "type": "long",
-   "paper": "卷一乙部",
-   "marks": 12,
-   "ref": "題型參考：自編題（圓的基本特性）",
-   "prompt": "在銳角 $#triangle ABC$ 中，$AB = 10$，$AC = 8$，$#angle BAC = 60#deg$。$BD$ 和 $CE$ 是三角形的高，$D$ 在 $AC$ 上，$E$ 在 $AB$ 上。（題目沒有附圖，請自行繪圖。答案準確至三位有效數字。）",
-   "parts": [
-    {
-     "type": "write",
-     "marks": 2,
-     "prompt": "證明 $B$、$C$、$D$、$E$ 四點共圓。",
-     "hints": [
-      "$#angle BEC$ 和 $#angle BDC$ 各是多少？它們對着哪一條線段？"
-     ],
-     "solution": [
-      "$#angle BEC = 90#deg$，$#angle BDC = 90#deg$（$CE$、$BD$ 是高）",
-      "$D$、$E$ 在 $BC$ 的同側，兩個角都對着 $BC$",
-      "所以 $B$、$C$、$D$、$E$ 四點共圓（同弓形內的圓周角的逆定理；或：$D$、$E$ 都在以 $BC$ 為直徑的圓上）"
-     ],
-     "scheme": [
-      "寫出 $#angle BEC = #angle BDC = 90#deg$，並說明原因（高）",
-      "指出兩個角都對着 $BC$，而 $D$、$E$ 在 $BC$ 的同側（或用「直徑所對的圓周角」的逆定理）",
-      "結論及正確的理由名稱"
-     ],
-     "tag": "共圓的證明"
-    },
-    {
-     "type": "write",
-     "marks": 3,
-     "prompt": "證明 $#triangle ADE #sim #triangle ABC$。",
-     "hints": [
-      "可以用 (a) 的圓內接四邊形，也可以直接用直角三角形求 $AD$、$AE$。"
-     ],
-     "solution": [
-      "方法一：$#angle ADE = #angle EBC = #angle ABC$（圓內接四邊形 $BCDE$ 的外角）；$#angle DAE = #angle BAC$（公共角）；所以 $#triangle ADE #sim #triangle ABC$（AA）",
-      "方法二：在直角三角形 $ABD$ 和 $ACE$ 中，$AD = AB #cos A$，$AE = AC #cos A$，所以 $#frac{AD}{AB} = #frac{AE}{AC} = #cos A$；$#angle A$ 是公共角；所以 $#triangle ADE #sim #triangle ABC$（兩邊成比例且夾角相等）"
-     ],
-     "scheme": [
-      "找出一對相等的對應角（$#angle ADE = #angle ABC$，圓內接四邊形的外角），或證明 $#frac{AD}{AB} = #frac{AE}{AC}$",
-      "指出 $#angle A$ 是公共角",
-      "寫出相似的理由（AA，或兩邊成比例且夾角相等），頂點次序對應正確"
-     ],
-     "tag": "相似三角形的證明"
-    },
-    {
-     "type": "roots",
-     "ordered": true,
-     "marks": 2,
-     "prompt": "求 $AD$ 和 $AE$。",
-     "label": "$AD$、$AE$",
-     "answer": [
-      5.0,
-      4.0
-     ],
-     "help": "依次輸入 AD 和 AE",
-     "hints": [
-      "在直角三角形 $ABD$ 中，$AD = AB #cos A$。",
-      "同樣在直角三角形 $ACE$ 中求 $AE$。"
-     ],
-     "solution": [
-      "$AD = 10 #cos 60#deg = 5$",
-      "$AE = 8 #cos 60#deg = 4$"
-     ]
-    },
-    {
-     "type": "num",
-     "marks": 2,
-     "prompt": "求 $DE$。",
-     "label": "$DE$",
-     "answer": 4.58,
-     "tol": 0.0051,
-     "help": "準確至三位有效數字",
-     "hints": [
-      "用 (b) 的相似三角形。",
-      "先用餘弦公式求 $BC$，計算過程中不要先取近似值。"
-     ],
-     "solution": [
-      "$BC^2 = 10^2 + 8^2 - 2(10)(8)#cos 60#deg = 84$，$BC = #sqrt{84}$",
-      "由 (b)：$#frac{DE}{BC} = #frac{AD}{AB} = #cos 60#deg$",
-      "$DE = #sqrt{84} #times #cos 60#deg = #sqrt{21} #approx 4.58$"
-     ]
-    },
-    {
-     "type": "write",
-     "marks": 3,
-     "prompt": "某同學說：「在任何銳角三角形中，用同樣方法得到的 $DE$ 都等於 $BC$ 的一半。」你同意嗎？試解釋。",
-     "hints": [
-      "相似比是多少？它和 $#angle A$ 有甚麼關係？"
-     ],
-     "solution": [
-      "由 (b)：$#frac{DE}{BC} = #frac{AD}{AB}$",
-      "在直角三角形 $ABD$ 中，$#frac{AD}{AB} = #cos A$，所以 $DE = BC #cos A$",
-      "只有 $#angle A = 60#deg$ 時 $#cos A = #frac{1}{2}$；例如 $#angle A = 45#deg$ 時 $#frac{DE}{BC} = #cos 45#deg #approx 0.707 #ne #frac{1}{2}$",
-      "所以不同意"
-     ],
-     "scheme": [
-      "由相似三角形寫出 $#frac{DE}{BC} = #frac{AD}{AB}$",
-      "得出 $#frac{DE}{BC} = #cos A$",
-      "指出只有 $#angle A = 60#deg$ 時才是一半（或舉出反例），結論：不同意"
-     ],
-     "tag": "判斷命題"
-    }
-   ],
-   "twin": {
-    "prompt": "在銳角 $#triangle ABC$ 中，$AB = 12$，$AC = 10$，$#angle BAC = 50#deg$。$BD$ 和 $CE$ 是三角形的高，$D$ 在 $AC$ 上，$E$ 在 $AB$ 上。（題目沒有附圖，請自行繪圖。答案準確至三位有效數字。）",
-    "parts": [
-     {
-      "type": "write",
-      "marks": 2,
-      "prompt": "證明 $B$、$C$、$D$、$E$ 四點共圓。",
-      "hints": [
-       "$#angle BEC$ 和 $#angle BDC$ 各是多少？它們對着哪一條線段？"
-      ],
-      "solution": [
-       "$#angle BEC = 90#deg$，$#angle BDC = 90#deg$（$CE$、$BD$ 是高）",
-       "$D$、$E$ 在 $BC$ 的同側，兩個角都對着 $BC$",
-       "所以 $B$、$C$、$D$、$E$ 四點共圓（同弓形內的圓周角的逆定理；或：$D$、$E$ 都在以 $BC$ 為直徑的圓上）"
-      ],
-      "scheme": [
-       "寫出 $#angle BEC = #angle BDC = 90#deg$，並說明原因（高）",
-       "指出兩個角都對着 $BC$，而 $D$、$E$ 在 $BC$ 的同側（或用「直徑所對的圓周角」的逆定理）",
-       "結論及正確的理由名稱"
-      ],
-      "tag": "共圓的證明"
-     },
-     {
-      "type": "write",
-      "marks": 3,
-      "prompt": "證明 $#triangle ADE #sim #triangle ABC$。",
-      "hints": [
-       "可以用 (a) 的圓內接四邊形，也可以直接用直角三角形求 $AD$、$AE$。"
-      ],
-      "solution": [
-       "方法一：$#angle ADE = #angle EBC = #angle ABC$（圓內接四邊形 $BCDE$ 的外角）；$#angle DAE = #angle BAC$（公共角）；所以 $#triangle ADE #sim #triangle ABC$（AA）",
-       "方法二：在直角三角形 $ABD$ 和 $ACE$ 中，$AD = AB #cos A$，$AE = AC #cos A$，所以 $#frac{AD}{AB} = #frac{AE}{AC} = #cos A$；$#angle A$ 是公共角；所以 $#triangle ADE #sim #triangle ABC$（兩邊成比例且夾角相等）"
-      ],
-      "scheme": [
-       "找出一對相等的對應角（$#angle ADE = #angle ABC$，圓內接四邊形的外角），或證明 $#frac{AD}{AB} = #frac{AE}{AC}$",
-       "指出 $#angle A$ 是公共角",
-       "寫出相似的理由（AA，或兩邊成比例且夾角相等），頂點次序對應正確"
-      ],
-      "tag": "相似三角形的證明"
-     },
-     {
-      "type": "roots",
-      "ordered": true,
-      "marks": 2,
-      "prompt": "求 $AD$ 和 $AE$。",
-      "label": "$AD$、$AE$",
-      "answer": [
-       7.71,
-       6.43
-      ],
-      "tol": 0.006,
-      "help": "依次輸入 AD 和 AE",
-      "hints": [
-       "在直角三角形 $ABD$ 中，$AD = AB #cos A$。",
-       "同樣在直角三角形 $ACE$ 中求 $AE$。"
-      ],
-      "solution": [
-       "$AD = 12 #cos 50#deg = 7.71$",
-       "$AE = 10 #cos 50#deg = 6.43$"
-      ]
-     },
-     {
-      "type": "num",
-      "marks": 2,
-      "prompt": "求 $DE$。",
-      "label": "$DE$",
-      "answer": 6.09,
-      "tol": 0.0051,
-      "help": "準確至三位有效數字",
-      "wrong": [
-       {
-        "v": [
-         4.74
-        ],
-        "msg": "$#frac{DE}{BC} = #frac{AD}{AB}$，不一定是 $#frac{1}{2}$。",
-        "tag": "相似比"
-       }
-      ],
-      "hints": [
-       "用 (b) 的相似三角形。",
-       "先用餘弦公式求 $BC$，計算過程中不要先取近似值。"
-      ],
-      "solution": [
-       "$BC = #sqrt{12^2 + 10^2 - 2(12)(10)#cos 50#deg}$（先不要取近似值）",
-       "由 (b)：$#frac{DE}{BC} = #frac{AD}{AB} = #cos 50#deg$",
-       "$DE = BC #cos 50#deg #approx 6.09$（用未取近似值的 $BC$ 計算）"
-      ]
-     },
-     {
-      "type": "write",
-      "marks": 3,
-      "prompt": "某同學說：「在任何銳角三角形中，用同樣方法得到的 $DE$ 都等於 $BC$ 的一半。」你同意嗎？試解釋。",
-      "hints": [
-       "相似比是多少？它和 $#angle A$ 有甚麼關係？"
-      ],
-      "solution": [
-       "由 (b)：$#frac{DE}{BC} = #frac{AD}{AB}$",
-       "在直角三角形 $ABD$ 中，$#frac{AD}{AB} = #cos A$，所以 $DE = BC #cos A$",
-       "只有 $#angle A = 60#deg$ 時 $#cos A = #frac{1}{2}$；例如 $#angle A = 45#deg$ 時 $#frac{DE}{BC} = #cos 45#deg #approx 0.707 #ne #frac{1}{2}$",
-       "所以不同意"
-      ],
-      "scheme": [
-       "由相似三角形寫出 $#frac{DE}{BC} = #frac{AD}{AB}$",
-       "得出 $#frac{DE}{BC} = #cos A$",
-       "指出只有 $#angle A = 60#deg$ 時才是一半（或舉出反例），結論：不同意"
-      ],
-      "tag": "判斷命題"
-     }
-    ]
-   }
-  },
-  {
    "id": "e3",
    "level": 5.5,
    "type": "long",
    "paper": "卷一乙部",
    "marks": 8,
    "ref": "題型參考：DSE 卷一乙部（圓的基本特性）",
-   "prompt": "$PT$ 是圓在 $T$ 點的切線。直線 $PAB$ 與圓相交於 $A$ 和 $B$，其中 $A$ 位於 $P$ 和 $B$ 之間。已知 $PA = 4$ cm，$AB = 5$ cm，$TA = 4$ cm。（題目沒有附圖，請自行繪圖。）",
+   "prompt": "圖中，$PT$ 是圓在 $T$ 點的切線。直線 $PAB$ 與圓相交於 $A$ 和 $B$，其中 $A$ 位於 $P$ 和 $B$ 之間。已知 $PA = 4$ cm，$AB = 5$ cm，$TA = 4$ cm。",
    "parts": [
     {
      "type": "write",
@@ -77040,7 +77082,7 @@ function coordFig(o) {
     }
    ],
    "twin": {
-    "prompt": "$PT$ 是圓在 $T$ 點的切線。直線 $PAB$ 與圓相交於 $A$ 和 $B$，其中 $A$ 位於 $P$ 和 $B$ 之間。已知 $PA = 5$ cm，$AB = 15$ cm，$TA = 6$ cm。（題目沒有附圖，請自行繪圖。）",
+    "prompt": "圖中，$PT$ 是圓在 $T$ 點的切線。直線 $PAB$ 與圓相交於 $A$ 和 $B$，其中 $A$ 位於 $P$ 和 $B$ 之間。已知 $PA = 5$ cm，$AB = 15$ cm，$TA = 6$ cm。",
     "parts": [
      {
       "type": "write",
@@ -77133,6 +77175,14 @@ function coordFig(o) {
   }
  ]
 });
+  const L = UNITS.find(u => u.id === "u11").stations;
+  const Q = (sid, qid) => L.find(s => s.id === sid).practice.find(q => q.id === qid);
+  Q('elite', 'e2').figure = coordFig({"x": [-5.2, 10.319999999999999], "y": [-5.2, 5.2], "k": 26, "grid": false, "axes": false, "alt": "圓上有 A、B、D、C 四點；AB 延線與 CD 延線相交於圓外一點 E；並連 AC 和 BD", "pts": {"A": [-1.12, -3.84], "B": [1.12, -3.84], "C": [-1.12, 3.84], "D": [4.0, 0.0], "E": [9.12, -3.84]}, "segs": [["A", "E"], ["C", "E"], ["A", "C"], ["B", "D"]], "circles": [{"c": [0, 0], "r": 4, "cls": "s"}]});
+  Q('elite', 'e2').twin.figure = coordFig({"x": [-5.2, 7.333], "y": [-5.2, 5.2], "k": 26, "grid": false, "axes": false, "alt": "圓上有 A、B、D、C 四點；AB 延線與 CD 延線相交於圓外一點 E；並連 AC 和 BD", "pts": {"A": [-2.4, -3.2], "B": [2.4, -3.2], "C": [-2.4, 3.2], "D": [3.744, -1.408], "E": [6.133, -3.2]}, "segs": [["A", "E"], ["C", "E"], ["A", "C"], ["B", "D"]], "circles": [{"c": [0, 0], "r": 4, "cls": "s"}]});
+  Q('elite', 'e1').figure = coordFig({"x": [-5.2, 5.2], "y": [-5.2, 5.2], "k": 26, "grid": false, "axes": false, "alt": "圓內兩條弦 AB 和 CD 互相垂直，相交於 E", "pts": {"A": [-3.578, 1.789], "B": [3.578, 1.789], "C": [-0.716, 3.935], "D": [-0.716, -3.935], "E": [-0.716, 1.789]}, "segs": [["A", "B"], ["C", "D"]], "circles": [{"c": [0, 0], "r": 4, "cls": "s"}]});
+  Q('elite', 'e1').twin.figure = coordFig({"x": [-5.2, 5.2], "y": [-5.2, 5.2], "k": 26, "grid": false, "axes": false, "alt": "圓內兩條弦 AB 和 CD 互相垂直，相交於 E", "pts": {"A": [-3.986, 0.332], "B": [3.986, 0.332], "C": [-2.657, 2.99], "D": [-2.657, -2.99], "E": [-2.657, 0.332]}, "segs": [["A", "B"], ["C", "D"]], "circles": [{"c": [0, 0], "r": 4, "cls": "s"}]});
+  Q('elite', 'e3').figure = coordFig({"x": [-9.799, 5.2], "y": [-5.2, 5.2], "k": 26, "grid": false, "axes": false, "alt": "PT 是圓在 T 點的切線；直線 PAB 與圓相交於 A 和 B；並連 TA 和 TB", "pts": {"P": [-8.599, -2.25], "A": [-3.307, -2.25], "B": [3.307, -2.25], "T": [-2.646, 3.0]}, "segs": [["P", "B"], ["P", "T"], ["T", "A"], ["T", "B"]], "circles": [{"c": [0, 0], "r": 4, "cls": "s"}]});
+  Q('elite', 'e3').twin.figure = coordFig({"x": [-7.533, 5.2], "y": [-5.2, 5.2], "k": 26, "grid": false, "axes": false, "alt": "PT 是圓在 T 點的切線；直線 PAB 與圓相交於 A 和 B；並連 TA 和 TB", "pts": {"P": [-6.333, 1.25], "A": [-3.8, 1.25], "B": [3.8, 1.25], "T": [-1.824, 3.56]}, "segs": [["P", "B"], ["P", "T"], ["T", "A"], ["T", "B"]], "circles": [{"c": [0, 0], "r": 4, "cls": "s"}]});
 })();
 
 /* 第 12 單元 軌跡：尖子挑戰（3 題）
@@ -78217,7 +78267,7 @@ function coordFig(o) {
    "type": "mc",
    "paper": "卷二乙部",
    "ref": "題型參考：自編題（立體圖形中的角）",
-   "prompt": "$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $8$ cm 的正方形，$VA = VB = VC = VD = 9$ cm。求錐體在棱 $VB$ 上的內側二面角，即平面 $VAB$ 與平面 $VBC$ 在錐體內部所夾的角（準確至一位小數）。",
+   "prompt": "圖中，$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $8$ cm 的正方形，$VA = VB = VC = VD = 9$ cm。求錐體在棱 $VB$ 上的內側二面角，即平面 $VAB$ 與平面 $VBC$ 在錐體內部所夾的角（準確至一位小數）。",
    "options": [
     {
      "t": "$104.3#deg$",
@@ -78251,7 +78301,7 @@ function coordFig(o) {
     "$#angle ANC #approx 104.3#deg$"
    ],
    "twin": {
-    "prompt": "$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $6$ cm 的正方形，$VA = VB = VC = VD = 5$ cm。求錐體在棱 $VB$ 上的內側二面角，即平面 $VAB$ 與平面 $VBC$ 在錐體內部所夾的角（準確至一位小數）。",
+    "prompt": "圖中，$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $6$ cm 的正方形，$VA = VB = VC = VD = 5$ cm。求錐體在棱 $VB$ 上的內側二面角，即平面 $VAB$ 與平面 $VBC$ 在錐體內部所夾的角（準確至一位小數）。",
     "options": [
      {
       "t": "$124.2#deg$",
@@ -78292,7 +78342,7 @@ function coordFig(o) {
    "type": "mc",
    "paper": "卷二乙部",
    "ref": "題型參考：DSE 卷二（立體圖形中的角）",
-   "prompt": "$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $8$ cm 的正方形，高 $6$ cm。設 $#theta_1$ 是 $VA$ 與底面的交角，$#theta_2$ 是平面 $VAB$ 與底面的交角。以下哪些正確？\nI. $#theta_2 > #theta_1$\nII. $#angle AVC$ 是鈍角。\nIII. 若把錐體的高加倍（底面不變），$#theta_2$ 也會加倍。",
+   "prompt": "圖中，$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $8$ cm 的正方形，高 $6$ cm。設 $#theta_1$ 是 $VA$ 與底面的交角，$#theta_2$ 是平面 $VAB$ 與底面的交角。以下哪些正確？\nI. $#theta_2 > #theta_1$\nII. $#angle AVC$ 是鈍角。\nIII. 若把錐體的高加倍（底面不變），$#theta_2$ 也會加倍。",
    "options": [
     {
      "t": "只有 I",
@@ -78324,7 +78374,7 @@ function coordFig(o) {
     "高加倍：$#theta_2 #approx 71.6#deg$，不是 $112.6#deg$"
    ],
    "twin": {
-    "prompt": "$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $6$ cm 的正方形，高 $6$ cm。設 $#theta_1$ 是 $VA$ 與底面的交角，$#theta_2$ 是平面 $VAB$ 與底面的交角。以下哪些正確？\nI. $#theta_2 > #theta_1$\nII. $#angle AVC$ 是銳角。\nIII. 若把錐體的高加倍（底面不變），$#theta_2$ 也會加倍。",
+    "prompt": "圖中，$VABCD$ 是一個直立正方錐體，底面 $ABCD$ 是邊長 $6$ cm 的正方形，高 $6$ cm。設 $#theta_1$ 是 $VA$ 與底面的交角，$#theta_2$ 是平面 $VAB$ 與底面的交角。以下哪些正確？\nI. $#theta_2 > #theta_1$\nII. $#angle AVC$ 是銳角。\nIII. 若把錐體的高加倍（底面不變），$#theta_2$ 也會加倍。",
     "options": [
      {
       "t": "只有 I 和 II",
@@ -78364,7 +78414,7 @@ function coordFig(o) {
    "paper": "卷一乙部",
    "marks": 8,
    "ref": "題型參考：DSE 卷一 Q18",
-   "prompt": "長方形紙卡 $ABCD$ 中，$AB = 12$ cm，$BC = 9$ cm。沿對角線 $AC$ 把 $#triangle ABC$ 摺起，使平面 $ABC$ 垂直於平面 $ACD$。$BP$ 和 $DQ$ 分別是由 $B$ 和 $D$ 到 $AC$ 的垂線（$P$、$Q$ 在 $AC$ 上）。（題目沒有附圖，請自行繪圖。）",
+   "prompt": "長方形紙卡 $ABCD$ 中，$AB = 12$ cm，$BC = 9$ cm。沿對角線 $AC$ 把 $#triangle ABC$ 摺起，使平面 $ABC$ 垂直於平面 $ACD$。$BP$ 和 $DQ$ 分別是由 $B$ 和 $D$ 到 $AC$ 的垂線（$P$、$Q$ 在 $AC$ 上），如圖所示。",
    "parts": [
     {
      "type": "num",
@@ -78461,7 +78511,7 @@ function coordFig(o) {
     }
    ],
    "twin": {
-    "prompt": "長方形紙卡 $ABCD$ 中，$AB = 12$ cm，$BC = 5$ cm。沿對角線 $AC$ 把 $#triangle ABC$ 摺起，使平面 $ABC$ 垂直於平面 $ACD$。$BP$ 和 $DQ$ 分別是由 $B$ 和 $D$ 到 $AC$ 的垂線（$P$、$Q$ 在 $AC$ 上）。（題目沒有附圖，請自行繪圖。）",
+    "prompt": "長方形紙卡 $ABCD$ 中，$AB = 12$ cm，$BC = 5$ cm。沿對角線 $AC$ 把 $#triangle ABC$ 摺起，使平面 $ABC$ 垂直於平面 $ACD$。$BP$ 和 $DQ$ 分別是由 $B$ 和 $D$ 到 $AC$ 的垂線（$P$、$Q$ 在 $AC$ 上），如圖所示。",
     "parts": [
      {
       "type": "num",
@@ -78561,6 +78611,14 @@ function coordFig(o) {
   }
  ]
 });
+  const L = U14_SOLID;
+  const Q = (sid, qid) => L.find(s => s.id === sid).practice.find(q => q.id === qid);
+  Q('elite', 'e1').figure = coordFig({"x": [-7.69, 7.69], "y": [-2.89, 8.49], "k": 21.0, "grid": false, "axes": false, "alt": "直立正方錐體 VABCD，底面 ABCD 是正方形", "pts": {"A": [1.8, -1.4], "B": [6.2, 1.4], "C": [-1.8, 1.4], "D": [-6.2, -1.4], "V": [0.0, 7.0]}, "segs": [["A", "B", "s"], ["D", "A", "s"], ["B", "C", "d"], ["C", "D", "d"], ["V", "A", "s"], ["V", "B", "s"], ["V", "D", "s"], ["V", "C", "d"]]});
+  Q('elite', 'e1').twin.figure = coordFig({"x": [-5.77, 5.77], "y": [-2.17, 3.76], "k": 28.0, "grid": false, "axes": false, "alt": "直立正方錐體 VABCD，底面 ABCD 是正方形", "pts": {"A": [1.35, -1.05], "B": [4.65, 1.05], "C": [-1.35, 1.05], "D": [-4.65, -1.05], "V": [0.0, 2.646]}, "segs": [["A", "B", "s"], ["D", "A", "s"], ["B", "C", "d"], ["C", "D", "d"], ["V", "A", "s"], ["V", "B", "s"], ["V", "D", "s"], ["V", "C", "d"]]});
+  Q('elite', 'e2').figure = coordFig({"x": [-7.69, 7.69], "y": [-2.89, 7.49], "k": 21.0, "grid": false, "axes": false, "alt": "直立正方錐體 VABCD，底面 ABCD 是正方形", "pts": {"A": [1.8, -1.4], "B": [6.2, 1.4], "C": [-1.8, 1.4], "D": [-6.2, -1.4], "V": [0.0, 6.0]}, "segs": [["A", "B", "s"], ["D", "A", "s"], ["B", "C", "d"], ["C", "D", "d"], ["V", "A", "s"], ["V", "B", "s"], ["V", "D", "s"], ["V", "C", "d"]]});
+  Q('elite', 'e2').twin.figure = coordFig({"x": [-5.77, 5.77], "y": [-2.17, 7.12], "k": 28.0, "grid": false, "axes": false, "alt": "直立正方錐體 VABCD，底面 ABCD 是正方形", "pts": {"A": [1.35, -1.05], "B": [4.65, 1.05], "C": [-1.35, 1.05], "D": [-4.65, -1.05], "V": [0.0, 6.0]}, "segs": [["A", "B", "s"], ["D", "A", "s"], ["B", "C", "d"], ["C", "D", "d"], ["V", "A", "s"], ["V", "B", "s"], ["V", "D", "s"], ["V", "C", "d"]]});
+  Q('elite', 'e3').figure = coordFig({"x": [-1.8, 16.8], "y": [-6.12, 9.0], "k": 17.3, "grid": false, "axes": false, "alt": "摺起後的紙卡：平面 ABC 垂直於平面 ACD，BP 和 DQ 垂直於 AC", "pts": {"A": [0.0, 0.0], "C": [15.0, 0.0], "P": [9.6, 0.0], "Q": [5.4, 0.0], "B": [9.6, 7.2], "D": [7.56, -4.32]}, "segs": [["A", "C", "s"], ["A", "D", "s"], ["D", "C", "s"], ["A", "B", "s"], ["B", "C", "s"], ["B", "P", "d"], ["D", "Q", "d"], ["B", "D", "gd"]], "right": [["B", "P", "C"], ["D", "Q", "C"]]});
+  Q('elite', 'e3').twin.figure = coordFig({"x": [-1.56, 14.56], "y": [-4.33, 6.18], "k": 20.0, "grid": false, "axes": false, "alt": "摺起後的紙卡：平面 ABC 垂直於平面 ACD，BP 和 DQ 垂直於 AC", "pts": {"A": [0.0, 0.0], "C": [13.0, 0.0], "P": [11.077, 0.0], "Q": [1.923, 0.0], "B": [11.077, 4.615], "D": [3.308, -2.769]}, "segs": [["A", "C", "s"], ["A", "D", "s"], ["D", "C", "s"], ["A", "B", "s"], ["B", "C", "s"], ["B", "P", "d"], ["D", "Q", "d"], ["B", "D", "gd"]], "right": [["B", "P", "C"], ["D", "Q", "C"]]});
 })();
 
 /* 第 15 單元 排列與組合：尖子挑戰（3 題）
